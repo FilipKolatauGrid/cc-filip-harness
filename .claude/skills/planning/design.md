@@ -29,13 +29,29 @@ Self-inject from `ACTIVE_TASK.md → ## Requirement`: extract `type`, `goal`, `t
 5. **Tech stack decisions** — confirmed choices with one-line rationale each
 6. **Open questions** — design choices that need ADR (hand off to `grill`)
 
+## Agent Delegation
+
+For existing projects (non-greenfield): spawn `sdlc-investigator` before designing. Pass `"design"` (phase) and the goal from `## Requirement`. Investigator maps existing components, patterns, and conventions — design must not duplicate or contradict them.
+
+For greenfield: skip investigator, no existing codebase to scan.
+
 ## Pattern
 
 ```javascript
 const requirement = readActiveTask("## Requirement");
 if (!requirement) hardBlock("task");
 
-const design = await agent(enrichedMetaPrompt, { schema: DESIGN_SCHEMA });
+// Pre-step: map existing codebase (skip on greenfield)
+let existingMap = null;
+if (!isGreenfield(requirement)) {
+  existingMap = await agent("design — map existing code for: " + requirement.goal, {
+    agentType: "sdlc-investigator",
+    label: "investigate:pre-design"
+  });
+  // existingMap: { files, symbols, patterns, gaps }
+}
+
+const design = await agent(enrichedMetaPrompt(requirement, existingMap), { schema: DESIGN_SCHEMA });
 // Output: { components, dataModel, apiContracts, dataFlow, techStack, openQuestions }
 
 writeActiveTask("## Design", design);
@@ -60,7 +76,9 @@ Write to `ACTIVE_TASK.md → ## Design`:
 ## Checklist
 
 - [ ] Read ACTIVE_TASK.md → ## Requirement; hard block if empty
-- [ ] Identify system boundaries and external integrations
+- [ ] If existing project: spawn `sdlc-investigator` (pass: "design", goal from ## Requirement)
+- [ ] Use investigator PATTERNS output to avoid duplicating existing conventions
+- [ ] Use investigator GAPS output to identify what's missing vs. what to extend
 - [ ] Map components with single-line responsibilities
 - [ ] Define data model (entities, fields, relationships)
 - [ ] Specify API contracts (endpoints, payloads, errors)

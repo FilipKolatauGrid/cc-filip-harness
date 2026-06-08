@@ -13,23 +13,28 @@ Writes: `ACTIVE_TASK.md` → `## Review Findings`
 **Hard block:** If verification verdict in `## Test Results` is not PASS:
 > "Verification must pass before code review. Fix blockers in ## Test Results first."
 
-## Meta-Prompt
+## Agent Delegation
 
-Self-inject from `ACTIVE_TASK.md → ## Test Results` (verdict, matrix) and git diff of implementation files.
+Spawn `sdlc-reviewer` AND `sdlc-secops` in **parallel** — both read the same diff independently. Neither depends on the other's output.
 
-**Analyze:**
-- Does the implementation match the design in ## Design?
-- Are there correctness bugs (off-by-one, null handling, race conditions)?
-- Is error handling complete and consistent?
-- Are tests meaningful — do they test behavior or just coverage?
-- Is naming clear and consistent with the codebase conventions?
-- Are there reuse opportunities (duplication, missing abstractions)?
-- Is complexity justified?
+- `sdlc-reviewer` → correctness, design alignment, test quality, acceptance criteria check
+- `sdlc-secops` → secrets, dangerous patterns, compliance drift (first-pass, before full `audit`)
 
-**Generate:**
-1. **Findings list** — `path:line: <severity>: <problem>. <fix>.`
-2. **Severity tiers** — CRITICAL (ship-blocker), IMPORTANT (should fix), MINOR (optional)
-3. **Verdict** — APPROVED / APPROVED_WITH_CHANGES / BLOCKED
+Merge both outputs into `## Review Findings`. Take worst verdict across both agents.
+
+**Why secops here too (not just audit):** `audit` is deep architectural analysis. `secops` at review catches secrets committed in this diff immediately — before audit phase, before deploy gate.
+
+**Severity mapping** (both agents → ACTIVE_TASK.md):
+- `🔴 CRITICAL` / SECRET → must resolve before merge
+- `🟠 HIGH` → must resolve before merge
+- `🟡 MEDIUM` / COMPLIANCE → should resolve, not a blocker
+- `🔵 LOW` → optional
+- `🟣 SCOPE` → flag only
+
+**Verdict mapping (worst-of):**
+- Either agent returns BLOCKED / CRITICAL_BLOCK → BLOCKED
+- Both return PASS / PASS_WITH_NOTES / FINDINGS_REQUIRE_FIX → APPROVED_WITH_CHANGES
+- Both return PASS / CLEAR → APPROVED
 
 ## Pattern
 
@@ -38,14 +43,22 @@ const testResults = readActiveTask("## Test Results");
 if (!testResults) hardBlock("tests");
 if (!verificationPassed(testResults)) hardBlock("verify");
 
-const diff = await runGitDiff();
+// Parallel: code review + secrets/compliance scan — same diff, independent concerns
+const [reviewOutput, secopsOutput] = await parallel([
+  () => agent("review — check correctness, design alignment, test quality", {
+    agentType: "sdlc-reviewer",
+    label: "review:diff"
+  }),
+  () => agent("review — scan for secrets, vuln patterns, compliance drift", {
+    agentType: "sdlc-secops",
+    label: "secops:review"
+  })
+]);
 
-const findings = await agent(enrichedMetaPrompt(testResults, diff), {
-  schema: REVIEW_FINDINGS_SCHEMA
-});
-// Output: { findings: [...], verdict: "APPROVED"|"APPROVED_WITH_CHANGES"|"BLOCKED" }
+const merged = mergeFindings(reviewOutput, secopsOutput);
+const verdict = worstVerdict(reviewOutput.verdict, secopsOutput.verdict);
 
-writeActiveTask("## Review Findings", findings);
+writeActiveTask("## Review Findings", { ...merged, verdict });
 ```
 
 ## Trigger Points
@@ -63,14 +76,13 @@ Writes to `ACTIVE_TASK.md → ## Review Findings`:
 ## Checklist
 
 - [ ] Read ACTIVE_TASK.md → ## Test Results; hard block if empty or FAIL verdict
-- [ ] Get git diff of implementation files
-- [ ] Check correctness: null handling, error paths, edge cases in code
-- [ ] Check design alignment: does code match ## Design components and contracts?
-- [ ] Check test quality: tests assert behavior, not just coverage lines
-- [ ] Check naming, consistency, duplication, unjustified complexity
-- [ ] Tag each finding: CRITICAL / IMPORTANT / MINOR
-- [ ] State verdict: APPROVED / APPROVED_WITH_CHANGES / BLOCKED
-- [ ] Write findings + verdict to ACTIVE_TASK.md → ## Review Findings
+- [ ] Spawn `sdlc-reviewer` + `sdlc-secops` in parallel (same diff, independent agents)
+- [ ] Wait for both agents to complete
+- [ ] Merge findings: reviewer block first, secops block second
+- [ ] Take worst verdict across both (BLOCKED / CRITICAL_BLOCK beats everything)
+- [ ] Map merged verdict to APPROVED / APPROVED_WITH_CHANGES / BLOCKED
+- [ ] Write merged findings + verdict to ACTIVE_TASK.md → ## Review Findings
+- [ ] If BLOCKED: surface all CRITICAL + SECRET blockers to user before proceeding
 - [ ] Next: run `audit`
 
 ## Example

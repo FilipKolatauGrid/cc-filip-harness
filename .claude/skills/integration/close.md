@@ -17,21 +17,29 @@ Writes:
 **Hard block:** If `## Review Findings` is empty:
 > "Task not reviewed. Run `review` before closing."
 
+## Agent Delegation
+
+Context snapshot generation is offloaded to `sdlc-context-builder` agents. If both FE and BE were touched, spawn **two agents in parallel** — they write different files and have no shared state.
+
+Do NOT generate context snapshots inline. The agent scans actual source files and does incremental merges against existing snapshots — accuracy requires reading files, not summarizing from memory.
+
+**Inline (main thread):** task type derivation, slug generation, archive write, ACTIVE_TASK.md reset.
+**Delegated:** FE_CONTEXT.md update, BE_CONTEXT.md update.
+
 ## Meta-Prompt
 
 Self-inject full `ACTIVE_TASK.md` content.
 
-**Analyze:**
+**Analyze (main thread only):**
 - What task type? (derive [FE] / [BE] / [FULLSTACK] / [INFRA] / [BUGFIX] / [REFACTOR] / [DOCS] from ## Requirement `type` + `techStack`)
 - What files were created/modified? (from ## Implementation Log)
-- Which codebase layers were touched? (FE = UI components/styles/routing; BE = services/APIs/DB/auth)
-- What is the one-line outcome summary?
+- Which layers touched? (FE = components/styles/routing; BE = services/APIs/DB/auth)
+- One-line outcome summary?
 
 **Generate:**
 1. **Task archive file** — full ACTIVE_TASK snapshot with type tag + outcome header
-2. **FE_CONTEXT.md update** — if FE files touched: component tree, routing, key patterns, tech stack
-3. **BE_CONTEXT.md update** — if BE files touched: services, endpoints, data models, auth, tech stack
-4. **Reset ACTIVE_TASK.md** — empty fixed schema, ready for next task
+2. **Context snapshots** — spawn `sdlc-context-builder` per layer (parallel if FULLSTACK)
+3. **Reset ACTIVE_TASK.md** — empty fixed schema, ready for next task
 
 ## Type Tags
 
@@ -53,22 +61,34 @@ if (!activeTask["## Review Findings"]) hardBlock("review");
 
 const type = deriveTypeTag(activeTask);
 const slug = slugify(activeTask["## Requirement"].goal);
-const date = currentDate(); // YYYYMMDD
+const date = args.date; // passed in — YYYYMMDD
 
-// Archive
+// 1. Archive (main thread — fast, no file scanning needed)
 writeFile(`task-log/${date}-${type}-${slug}.md`, archiveContent(activeTask));
 
-// Regenerate context snapshots
+// 2. Regenerate context snapshots (delegated, parallel when FULLSTACK)
+const filesChanged = activeTask["## Implementation Log"].filesCreated;
+const contextJobs = [];
+
 if (touchesFE(activeTask)) {
-  const feContext = await agent(feContextMetaPrompt, { schema: CONTEXT_SCHEMA });
-  writeFile(".claude/context/FE_CONTEXT.md", feContext);
+  contextJobs.push(() => agent(
+    `Build FE context snapshot for files: ${filesChanged.filter(isFE).join(", ")}`,
+    { agentType: "sdlc-context-builder", label: "context:FE",
+      // agent reads existing FE_CONTEXT.md and filesChanged internally
+    }
+  ));
 }
 if (touchesBE(activeTask)) {
-  const beContext = await agent(beContextMetaPrompt, { schema: CONTEXT_SCHEMA });
-  writeFile(".claude/context/BE_CONTEXT.md", beContext);
+  contextJobs.push(() => agent(
+    `Build BE context snapshot for files: ${filesChanged.filter(isBE).join(", ")}`,
+    { agentType: "sdlc-context-builder", label: "context:BE" }
+  ));
 }
 
-// Reset
+// Parallel when both layers touched — each writes a different file, no conflict
+await parallel(contextJobs);
+
+// 3. Reset (main thread — after context agents complete)
 writeFile("ACTIVE_TASK.md", EMPTY_SCHEMA_TEMPLATE);
 ```
 
@@ -115,9 +135,12 @@ Generated: YYYYMMDD — updated each task close.
 - [ ] Hard block if ## Review Findings empty
 - [ ] Derive type tag from task type + tech stack
 - [ ] Generate slug from goal (lowercase, hyphens)
-- [ ] Write task archive to task-log/YYYYMMDD-[TYPE]-slug.md
-- [ ] If FE files touched: regenerate .claude/context/FE_CONTEXT.md
-- [ ] If BE files touched: regenerate .claude/context/BE_CONTEXT.md
+- [ ] Write task archive to task-log/YYYYMMDD-[TYPE]-slug.md (main thread)
+- [ ] Extract filesChanged from ## Implementation Log
+- [ ] If FE files touched: spawn `sdlc-context-builder` (layer=FE, filesChanged, date)
+- [ ] If BE files touched: spawn `sdlc-context-builder` (layer=BE, filesChanged, date)
+- [ ] If FULLSTACK: spawn both in parallel — different output files, no conflict
+- [ ] Wait for context agent(s) to complete before reset
 - [ ] Reset ACTIVE_TASK.md to empty fixed schema
 - [ ] Commit: task-log/ + context updates + ACTIVE_TASK.md reset
 - [ ] Next: `ship` (if deploying) or `task` (next task)

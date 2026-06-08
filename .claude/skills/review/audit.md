@@ -10,24 +10,24 @@ Writes: appends security findings to `ACTIVE_TASK.md → ## Review Findings`
 **Hard block:** If `## Review Findings` is empty:
 > "Run `review` first. Output required in ACTIVE_TASK.md → ## Review Findings."
 
-## Meta-Prompt
+## Agent Delegation
 
-Self-inject from `ACTIVE_TASK.md → ## Review Findings` (existing findings, verdict) and git diff of implementation files.
+Spawn `sdlc-secops` with phase `"audit"`. Agent fetches diff itself, runs pattern scans across secrets / vuln patterns / compliance, returns structured findings block.
 
-**Analyze across OWASP Top 10 and common patterns:**
-- **Injection** — SQL, command, LDAP injection vectors in user-controlled inputs
-- **Auth flaws** — broken auth, session fixation, token leakage, weak credentials policy
-- **Sensitive data exposure** — secrets in code, logs, error messages, responses
-- **Input validation** — unvalidated/unsanitized inputs reaching DB, filesystem, or external services
-- **Access control** — missing authorization checks, IDOR vulnerabilities
-- **Security misconfiguration** — debug mode, default credentials, overly permissive CORS
-- **Cryptography** — weak algorithms, hardcoded keys, improper IV/salt handling
-- **Dependency risk** — known CVEs in direct dependencies (flag for manual check)
+Run two passes in parallel:
+1. `sdlc-secops` — mechanical pattern scan (secrets, dangerous calls, compliance drift)
+2. Main thread architectural analysis — OWASP Top 10 reasoning that requires reading ACTIVE_TASK.md design context (injection data flow, auth architecture, access control design)
 
-**Generate:**
-1. **Security findings** — `path:line: <severity>: <vulnerability type>: <description>. <fix>.`
-2. **Severity tiers** — CRITICAL (exploitable now), HIGH (likely exploitable), MEDIUM (defense-in-depth), LOW (hardening)
-3. **Security verdict** — CLEAR / FINDINGS_REQUIRE_FIX / CRITICAL_BLOCK
+The secops agent is fast (haiku). Use the time it runs to do the architectural pass yourself. Merge both outputs before writing to `## Review Findings`.
+
+**Architectural analysis (main thread — run while secops agent executes):**
+- **Injection** — trace user-controlled inputs to DB/shell/template sinks via design data flow
+- **Auth flaws** — token validation logic, session management against ## Design auth contracts
+- **Access control** — authorization checks on every mutating endpoint vs. ## Design API contracts
+- **Cryptography** — algorithm choices, key handling, IV/salt — context from ADRs
+- **Dependency risk** — flag for manual `pip audit` / `npm audit` / `cargo audit`
+
+**Severity tiers:** CRITICAL (exploitable now), HIGH (likely exploitable), MEDIUM (defense-in-depth), LOW (hardening)
 
 ## Pattern
 
@@ -35,14 +35,20 @@ Self-inject from `ACTIVE_TASK.md → ## Review Findings` (existing findings, ver
 const reviewFindings = readActiveTask("## Review Findings");
 if (!reviewFindings) hardBlock("review");
 
-const diff = await runGitDiff();
+// Parallel: secops scan + main-thread architectural analysis
+const [secopsFindings] = await parallel([
+  () => agent("audit — scan diff for secrets, vuln patterns, compliance", {
+    agentType: "sdlc-secops",
+    label: "secops:audit"
+  })
+  // Main thread architectural analysis runs concurrently (not spawned — stays inline)
+]);
 
-const securityFindings = await agent(enrichedMetaPrompt(reviewFindings, diff), {
-  schema: SECURITY_FINDINGS_SCHEMA
-});
-// Output: { findings: [...], verdict: "CLEAR"|"FINDINGS_REQUIRE_FIX"|"CRITICAL_BLOCK" }
+// Merge secops findings + architectural findings
+const mergedFindings = merge(secopsFindings, architecturalFindings);
+const verdict = worstOf(secopsFindings.verdict, architecturalVerdict);
 
-appendToActiveTask("## Review Findings", securityFindings);
+appendToActiveTask("## Review Findings", { findings: mergedFindings, securityVerdict: verdict });
 ```
 
 ## Trigger Points
@@ -60,17 +66,14 @@ Appends to `ACTIVE_TASK.md → ## Review Findings`:
 ## Checklist
 
 - [ ] Read ACTIVE_TASK.md → ## Review Findings; hard block if empty
-- [ ] Get git diff of implementation files
-- [ ] Check injection vectors: SQL queries, shell commands, template rendering
-- [ ] Check auth: token validation, password handling, session management
-- [ ] Check sensitive data: secrets in source, PII in logs/errors, response over-sharing
-- [ ] Check input validation: every user-controlled input reaching a sink
-- [ ] Check access control: authorization on every mutating endpoint
-- [ ] Check crypto: algorithm strength, key/salt handling, no hardcoded secrets
-- [ ] Flag dependencies with potential CVEs (note: manual `pip audit` / `npm audit` recommended)
+- [ ] Spawn `sdlc-secops` agent (phase: "audit") — runs pattern scan while you do architectural analysis
+- [ ] Architectural analysis (main thread): injection data flow, auth design, access control, crypto choices, dep risk
+- [ ] Wait for secops agent output
+- [ ] Merge: secops findings (SECRET/VULN_PATTERN/COMPLIANCE) + architectural findings (OWASP)
+- [ ] Take worst verdict: CRITICAL_BLOCK > FINDINGS_REQUIRE_FIX > CLEAR
 - [ ] State security verdict: CLEAR / FINDINGS_REQUIRE_FIX / CRITICAL_BLOCK
-- [ ] Append findings to ACTIVE_TASK.md → ## Review Findings
-- [ ] Next: run `deploy` (if CLEAR or FINDINGS_REQUIRE_FIX resolved)
+- [ ] Append merged findings + verdict to ACTIVE_TASK.md → ## Review Findings
+- [ ] Next: run `deploy` (if CLEAR or all CRITICAL_BLOCK resolved)
 
 ## Example
 

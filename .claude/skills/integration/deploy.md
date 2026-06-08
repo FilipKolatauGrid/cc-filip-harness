@@ -13,6 +13,12 @@ Writes: `ACTIVE_TASK.md` → `## Deploy Checklist`
 **Hard block:** If any CRITICAL finding in `## Review Findings` is unresolved:
 > "Resolve all CRITICAL findings in ## Review Findings before deploying."
 
+## Agent Delegation
+
+Run `sdlc-secops` as a final pre-deploy gate scan before generating the checklist. This catches any secrets or dangerous patterns that were introduced after `audit` ran (e.g., a last-minute config change, an env-var default added in a fixup commit).
+
+**Hard block if secops returns CRITICAL_BLOCK** — a secret in a deploy commit is an incident, not a checklist item.
+
 ## Meta-Prompt
 
 Self-inject from `ACTIVE_TASK.md → ## Review Findings`: extract findings, verdicts, security verdict, resolved/unresolved status.
@@ -26,7 +32,7 @@ Self-inject from `ACTIVE_TASK.md → ## Review Findings`: extract findings, verd
 - What monitoring/alerting should be checked post-deploy?
 
 **Generate:**
-1. **Pre-deploy gate** — confirm all CRITICAL/HIGH findings resolved
+1. **Pre-deploy gate** — secops scan result + confirm all CRITICAL/HIGH findings resolved
 2. **Environment checklist** — env vars, secrets, config values to set
 3. **Migration steps** — ordered DB or infra changes with rollback for each
 4. **Deploy steps** — ordered deployment commands
@@ -41,7 +47,17 @@ const reviewFindings = readActiveTask("## Review Findings");
 if (!reviewFindings) hardBlock("review");
 if (hasCriticalUnresolved(reviewFindings)) stop("Resolve all CRITICAL findings in ## Review Findings before deploying.");
 
-const checklist = await agent(enrichedMetaPrompt, { schema: DEPLOY_CHECKLIST_SCHEMA });
+// Final pre-deploy secrets scan — catches fixup commits post-audit
+const secopsGate = await agent("deploy — final secrets and compliance scan before deploy", {
+  agentType: "sdlc-secops",
+  label: "secops:pre-deploy"
+});
+
+if (secopsGate.verdict === "CRITICAL_BLOCK") {
+  stop(`Pre-deploy secops scan found blockers:\n${secopsGate.blockers}\nResolve before deploying.`);
+}
+
+const checklist = await agent(enrichedMetaPrompt(reviewFindings, secopsGate), { schema: DEPLOY_CHECKLIST_SCHEMA });
 // Output: { gate, envChecklist, migrationSteps, deploySteps, smokeTests, rollbackPlan, notifications }
 
 writeActiveTask("## Deploy Checklist", checklist);
@@ -67,7 +83,10 @@ Writes to `ACTIVE_TASK.md → ## Deploy Checklist`:
 ## Checklist
 
 - [ ] Read ACTIVE_TASK.md → ## Review Findings; hard block if empty
-- [ ] Hard block if any CRITICAL finding unresolved
+- [ ] Hard block if any CRITICAL finding unresolved in ## Review Findings
+- [ ] Spawn `sdlc-secops` (phase: "deploy") — final scan for secrets in fixup commits
+- [ ] Hard block if secops returns CRITICAL_BLOCK — resolve before proceeding
+- [ ] Include secops gate result in Pre-deploy Gate section of checklist
 - [ ] List env vars and secrets needed in prod environment
 - [ ] List DB/infra migration steps in safe order (with per-step rollback)
 - [ ] Write deploy steps (stack-specific: Docker, k8s, Heroku, etc.)
