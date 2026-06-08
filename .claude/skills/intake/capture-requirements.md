@@ -2,6 +2,13 @@
 
 Parse user intent into structured task definition with acceptance criteria, scope, and success metrics.
 
+## Prerequisites
+
+Reads: nothing (entry point)
+Writes: `ACTIVE_TASK.md` → `## Requirement`
+
+**Note:** Create `ACTIVE_TASK.md` at project root if it doesn't exist. Use the fixed schema from the harness `CLAUDE.md`.
+
 ## Meta-Prompt
 
 Given user text describing a task (feature request, bug report, refactor request):
@@ -93,6 +100,8 @@ const requirement = await agent(generatedMetaPrompt, {
 - [ ] Propose success metrics
 - [ ] Identify ambiguities → ask questions
 - [ ] Suggest next phase (usually Planning)
+- [ ] Write structured output to ACTIVE_TASK.md → ## Requirement
+- [ ] Next: run `init-project` (new project) or `architecture-design` (existing project)
 
 ## Example: Bug Report
 
