@@ -17,7 +17,7 @@ How to add the SDLC harness to any project — greenfield or existing.
 # 1. Clone the harness
 git clone https://github.com/your-org/claude-code-harness .claude-harness
 
-# 2. Copy .claude/ into your new project
+# 2. Copy .claude/ into your new project (includes commands/, skills/, workflows/)
 cp -r .claude-harness/.claude your-project/.claude
 cp .claude-harness/CLAUDE.md your-project/CLAUDE.md
 cp .claude-harness/ACTIVE_TASK.md your-project/ACTIVE_TASK.md
@@ -81,7 +81,8 @@ The harness requires these files at your project root:
 
 ```
 .claude/
-  skills/         ← all 15 skill files
+  commands/       ← 16 slash command wrappers (/task /design /grill /risk /code /tdd /refactor /tests /coverage /verify /review /audit /deploy /ship /close /init)
+  skills/         ← 16 skill instruction files (called by commands)
   workflows/      ← 4 workflow files
   context/        ← empty dir (populated by /close)
 ACTIVE_TASK.md    ← empty schema (reset after each /close)
@@ -175,8 +176,9 @@ ACTIVE_TASK.md
 When the harness has new skills or fixes:
 
 ```bash
-# Pull latest skill files
+# Pull latest skill/command files
 cd .claude-harness && git pull
+cp -r .claude-harness/.claude/commands your-project/.claude/commands
 cp -r .claude-harness/.claude/skills your-project/.claude/skills
 cp -r .claude-harness/.claude/workflows your-project/.claude/workflows
 ```
@@ -193,8 +195,8 @@ Your `task-log/`, `.claude/context/`, and `ACTIVE_TASK.md` are project-local —
 **"Hard block: ## Design is empty"**
 → Run `/design`. Skills gate on prior phase output.
 
-**Skills not discovered by Claude Code**
-→ Ensure `.claude/skills/` exists at your project root (not a subdirectory). Claude Code discovers skills relative to the working directory.
+**Commands not found (`/task`, `/design`, etc.)**
+→ Ensure `.claude/commands/` exists at your project root with all 16 `.md` files. Claude Code discovers slash commands from `.claude/commands/` relative to the working directory. If missing, copy from the harness repo.
 
 **ACTIVE_TASK.md grew too large**
 → Run `/close` to archive and reset. Each task should have its own cycle.

@@ -43,15 +43,15 @@ Single-page lookup: what skill handles what, in what order, reading and writing 
 Skills write sections in this order. Each skill hard-blocks if its required prior section is missing.
 
 ```
-## Requirement        ← capture-requirements, init-project
-## Design             ← architecture-design
-## ADRs               ← decision-grill
-## Risks              ← risk-assessment
-## Implementation Log ← code-gen, tdd, refactor
-## Test Results       ← test-design, coverage-analysis, verification
-## Review Findings    ← code-review, security-audit
-## Deploy Checklist   ← deploy-checklist
-## Post-Deploy        ← post-deploy
+## Requirement        ← /task, /init
+## Design             ← /design
+## ADRs               ← /grill
+## Risks              ← /risk
+## Implementation Log ← /code, /tdd, /refactor
+## Test Results       ← /tests, /coverage, /verify
+## Review Findings    ← /review, /audit
+## Deploy Checklist   ← /deploy
+## Post-Deploy        ← /ship
 ```
 
 `close` reads all sections, then resets ACTIVE_TASK.md to empty schema.

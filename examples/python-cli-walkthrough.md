@@ -10,7 +10,7 @@ Shows actual ACTIVE_TASK.md section output at each phase.
 
 ## Phase 1: Intake
 
-### `/capture-requirements`
+### `/task`
 
 **Input:** "We need to add a CSV export command to our data pipeline CLI. Users run `pipeline export` and get a CSV file of the last run's results. We have 2 weeks and one engineer."
 
@@ -44,7 +44,7 @@ questions:
 
 ## Phase 2: Planning
 
-### `/architecture-design`
+### `/design`
 
 **ACTIVE_TASK.md → ## Design:**
 ```
@@ -72,12 +72,12 @@ Click: existing CLI framework — forced
 csv (stdlib): no new dependency — streaming via csv.writer
 pytest + pytest-click: existing test setup
 
-### Open Questions (→ decision-grill)
+### Open Questions (→ /grill)
 - Column order: DB query order vs. alphabetical?
 - Output encoding: UTF-8 always, or honour locale?
 ```
 
-### `/decision-grill`
+### `/grill`
 
 **ACTIVE_TASK.md → ## ADRs:**
 ```
@@ -98,13 +98,13 @@ Consequences: Windows users opening in Excel may see encoding prompt — accepta
 Rejected: locale-aware — unpredictable across environments.
 ```
 
-### `/risk-assessment` *(skipped — single layer, no external deps, < 3 days scope)*
+### `/risk` *(skipped — single layer, no external deps, < 3 days scope)*
 
 ---
 
 ## Phase 3: Implementation
 
-### `/code-gen`
+### `/code`
 
 **ACTIVE_TASK.md → ## Implementation Log:**
 ```
@@ -158,7 +158,7 @@ All 5 criteria: ✅ green
 
 ## Phase 4: Testing
 
-### `/test-design` + `/coverage-analysis` + `/verification`
+### `/tests` + `/coverage` + `/verify`
 
 **ACTIVE_TASK.md → ## Test Results:**
 ```
@@ -188,7 +188,7 @@ Overall: 91% — above 85% target ✅
 
 ## Phase 5: Review
 
-### `/code-review` + `/security-audit`
+### `/review` + `/audit`
 
 **ACTIVE_TASK.md → ## Review Findings:**
 ```
@@ -209,7 +209,7 @@ Fix MINOR items before merge (low risk, clean up only).
 
 ## Phase 6: Integration
 
-### `close`
+### `/close`
 
 ```
 task-log/20240115-[FE]-add-csv-export-to-data-pipeline-cli.md  ← created

@@ -10,7 +10,7 @@ Shows actual ACTIVE_TASK.md section output at each phase. Compare with Python CL
 
 ## Phase 1: Intake
 
-### `/capture-requirements`
+### `/task`
 
 **Input:** "We need rate limiting on our NestJS API. Too many bots are hammering the /search endpoint. Limit to 100 requests per minute per IP. We have 1 week."
 
@@ -44,7 +44,7 @@ questions:
 
 ## Phase 2: Planning
 
-### `/architecture-design`
+### `/design`
 
 **ACTIVE_TASK.md → ## Design:**
 ```
@@ -68,16 +68,16 @@ ThrottleResult: { allowed: boolean; remaining: number; resetAt: Date }
 RateLimitConfig: { limit: number; windowMs: number; whitelistedIps: string[] }
 
 ### Tech Stack
-@nestjs/throttler: NestJS built-in — evaluate vs. custom (→ decision-grill)
+@nestjs/throttler: NestJS built-in — evaluate vs. custom (→ /grill)
 NestJS Guards + Interceptors: standard pattern, no new deps
-In-memory Map: acceptable for single-node (→ decision-grill)
+In-memory Map: acceptable for single-node (→ /grill)
 
-### Open Questions (→ decision-grill)
+### Open Questions (→ /grill)
 - @nestjs/throttler built-in vs. custom ThrottlerService?
 - In-memory Map vs. Redis for rate limit storage?
 ```
 
-### `/decision-grill`
+### `/grill`
 
 **ACTIVE_TASK.md → ## ADRs:**
 ```
@@ -98,7 +98,7 @@ Consequences: Rate limit resets on restart; doesn't work across multiple instanc
 Rejected: Redis — out of scope, adds infra dependency not justified by requirements.
 ```
 
-### `/risk-assessment`
+### `/risk`
 
 **ACTIVE_TASK.md → ## Risks:**
 ```
@@ -123,7 +123,7 @@ Rejected: Redis — out of scope, adds infra dependency not justified by require
 
 ## Phase 3: Implementation
 
-### `/code-gen`
+### `/code`
 
 **ACTIVE_TASK.md → ## Implementation Log:**
 ```
@@ -173,7 +173,7 @@ All 4 criteria: ✅ green
 
 ## Phase 4: Testing
 
-### `/test-design` + `/coverage-analysis` + `/verification`
+### `/tests` + `/coverage` + `/verify`
 
 **ACTIVE_TASK.md → ## Test Results:**
 ```
@@ -198,7 +198,7 @@ Overall: 91% — above 85% target ✅
 
 ## Phase 5: Review
 
-### `/code-review` + `/security-audit`
+### `/review` + `/audit`
 
 **ACTIVE_TASK.md → ## Review Findings:**
 ```
@@ -218,7 +218,7 @@ Fix HIGH (IP spoofing mitigation — trustProxy config + docs) and IMPORTANT bef
 
 ## Phase 6: Integration
 
-### `close`
+### `/close`
 
 ```
 task-log/20240120-[BE]-add-rate-limiting-to-nestjs-api.md  ← created
