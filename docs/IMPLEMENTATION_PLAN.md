@@ -24,6 +24,9 @@
 | Discovery | Separate `SKILL_REGISTRY.md` |
 | grill-me integration | Reference-only in `decision-grill.md` (ADR stress-test phase) |
 | caveman integration | Reference-only: one line in `CLAUDE.md` + one row in `SKILL_REGISTRY.md` Meta/DX section |
+| Task archival | `task-log/YYYYMMDD-[TYPE]-slug.md` per completed task; types: [FE][BE][FULLSTACK][BUGFIX][REFACTOR][INFRA][DOCS] |
+| Context caching | `.claude/context/FE_CONTEXT.md` + `BE_CONTEXT.md` — regenerated on `close-task`, loaded at session init via `CLAUDE.md` |
+| Task closure trigger | New `close-task` skill (integration/) — runs after merge, not post-deploy; resets ACTIVE_TASK.md |
 
 ---
 
@@ -346,6 +349,7 @@ Follow canonical skill structure for each. Pattern: read prior section → hard 
 **Task 12:** `security-audit.md` — Reads `## Review Findings` + git diff → Appends to `## Review Findings`
 **Task 13:** `deploy-checklist.md` — Reads `## Review Findings` → Writes `## Deploy Checklist`
 **Task 14:** `post-deploy.md` — Reads `## Deploy Checklist` → Writes `## Post-Deploy`
+**Task 14b:** `close-task.md` — Reads full ACTIVE_TASK.md → Archives to `task-log/`, updates `.claude/context/`, resets ACTIVE_TASK.md. Runs after merge (not tied to deploy).
 
 Each skill:
 - Follows canonical structure template
@@ -431,10 +435,10 @@ find /Users/fkolatau/Documents/claude-code-harness/.claude -name "*.md" | sort
 
 | Category | Count | Tasks |
 |---|---|---|
-| Skills | 14 (1 updated, 13 created) | Tasks 0–14 |
+| Skills | 15 (1 updated, 14 created) | Tasks 0–14b |
 | Workflows | 4 | Task 15 |
 | Docs/Examples | 4 | Tasks 16–18 |
-| **Total files** | **22** | **19 tasks** |
+| **Total files** | **23** | **20 tasks** |
 
 Key changes from original plan:
 - No `agents/` directory — orchestration embedded in workflows
