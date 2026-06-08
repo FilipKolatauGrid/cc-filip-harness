@@ -8,10 +8,10 @@ Reads: `ACTIVE_TASK.md` → `## Design` and `## ADRs`
 Writes: `ACTIVE_TASK.md` → `## Risks`
 
 **Hard block:** If `## Design` is empty:
-> "Run `architecture-design` first. Output required in ACTIVE_TASK.md → ## Design."
+> "Run `design` first. Output required in ACTIVE_TASK.md → ## Design."
 
 **Hard block:** If `## ADRs` is empty:
-> "Run `decision-grill` first. Output required in ACTIVE_TASK.md → ## ADRs."
+> "Run `grill` first. Output required in ACTIVE_TASK.md → ## ADRs."
 
 ## Meta-Prompt
 
@@ -34,8 +34,8 @@ Self-inject from `ACTIVE_TASK.md → ## Design` and `## ADRs`: extract component
 ```javascript
 const design = readActiveTask("## Design");
 const adrs = readActiveTask("## ADRs");
-if (!design) hardBlock("architecture-design");
-if (!adrs) hardBlock("decision-grill");
+if (!design) hardBlock("design");
+if (!adrs) hardBlock("grill");
 
 const risks = await agent(enrichedMetaPrompt, { schema: RISK_SCHEMA });
 // Output: { registry: [...], top3: [...], assumptions: [...] }
@@ -45,7 +45,7 @@ writeActiveTask("## Risks", risks);
 
 ## Trigger Points
 
-- After `decision-grill` writes ## ADRs
+- After `grill` writes ## ADRs
 - User says "what could go wrong?", "assess risks", "risk register"
 - Before implementation begins
 
@@ -66,7 +66,7 @@ Write to `ACTIVE_TASK.md → ## Risks`:
 - [ ] Call out top 3 by severity
 - [ ] Log unverified assumptions
 - [ ] Write output to ACTIVE_TASK.md → ## Risks
-- [ ] Next: run `code-gen`
+- [ ] Next: run `code`
 
 ## Example
 
@@ -99,4 +99,4 @@ ADR-002: stateless JWT — consequence: tokens non-revocable
 
 ---
 
-*Next: `code-gen` (Implementation phase).*
+*Next: `code` (Implementation phase).*

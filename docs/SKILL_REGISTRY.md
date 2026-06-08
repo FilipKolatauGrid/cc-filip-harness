@@ -8,22 +8,22 @@ Single-page lookup: what skill handles what, in what order, reading and writing 
 
 | Skill | Phase | File | Trigger | Reads | Writes |
 |-------|-------|------|---------|-------|--------|
-| `capture-requirements` | Intake | `.claude/skills/intake/capture-requirements.md` | Start any task | — | `## Requirement` |
-| `init-project` | Intake | `.claude/skills/intake/init-project.md` | Greenfield scaffold | `## Requirement` | `## Requirement` (addendum) |
-| `architecture-design` | Planning | `.claude/skills/planning/architecture-design.md` | Design system | `## Requirement` | `## Design` |
-| `decision-grill` | Planning | `.claude/skills/planning/decision-grill.md` | Stress-test decisions | `## Design` | `## ADRs` |
-| `risk-assessment` | Planning | `.claude/skills/planning/risk-assessment.md` | Identify risks | `## Design` + `## ADRs` | `## Risks` |
-| `code-gen` | Implementation | `.claude/skills/implementation/code-gen.md` | Generate code | `## Design` | filesystem + `## Implementation Log` |
+| `task` | Intake | `.claude/skills/intake/task.md` | Start any task | — | `## Requirement` |
+| `init` | Intake | `.claude/skills/intake/init.md` | Greenfield scaffold | `## Requirement` | `## Requirement` (addendum) |
+| `design` | Planning | `.claude/skills/planning/design.md` | Design system | `## Requirement` | `## Design` |
+| `grill` | Planning | `.claude/skills/planning/grill.md` | Stress-test decisions | `## Design` | `## ADRs` |
+| `risk` | Planning | `.claude/skills/planning/risk.md` | Identify risks | `## Design` + `## ADRs` | `## Risks` |
+| `code` | Implementation | `.claude/skills/implementation/code.md` | Generate code | `## Design` | filesystem + `## Implementation Log` |
 | `tdd` | Implementation | `.claude/skills/implementation/tdd.md` | Test-drive criteria | `## Requirement` + `## Implementation Log` | `## Implementation Log` (append) |
 | `refactor` | Implementation | `.claude/skills/implementation/refactor.md` | Structural cleanup | `## Implementation Log` | `## Implementation Log` (append) |
-| `test-design` | Testing | `.claude/skills/testing/test-design.md` | Plan test scenarios | `## Requirement` + `## Implementation Log` | `## Test Results` |
-| `coverage-analysis` | Testing | `.claude/skills/testing/coverage-analysis.md` | Find coverage gaps | `## Test Results` | `## Test Results` (append) |
-| `verification` | Testing | `.claude/skills/testing/verification.md` | Confirm all criteria | `## Requirement` + `## Test Results` | `## Test Results` (append) |
-| `code-review` | Review | `.claude/skills/review/code-review.md` | Review diff | `## Test Results` + git diff | `## Review Findings` |
-| `security-audit` | Review | `.claude/skills/review/security-audit.md` | OWASP audit | `## Review Findings` + git diff | `## Review Findings` (append) |
-| `deploy-checklist` | Integration | `.claude/skills/integration/deploy-checklist.md` | Pre-deploy gate | `## Review Findings` | `## Deploy Checklist` |
-| `post-deploy` | Integration | `.claude/skills/integration/post-deploy.md` | Validate deploy | `## Deploy Checklist` | `## Post-Deploy` |
-| `close-task` | Integration | `.claude/skills/integration/close-task.md` | After merge | Full `ACTIVE_TASK.md` | `task-log/` + `.claude/context/` + ACTIVE_TASK.md reset |
+| `tests` | Testing | `.claude/skills/testing/tests.md` | Plan test scenarios | `## Requirement` + `## Implementation Log` | `## Test Results` |
+| `coverage` | Testing | `.claude/skills/testing/coverage.md` | Find coverage gaps | `## Test Results` | `## Test Results` (append) |
+| `verify` | Testing | `.claude/skills/testing/verify.md` | Confirm all criteria | `## Requirement` + `## Test Results` | `## Test Results` (append) |
+| `review` | Review | `.claude/skills/review/review.md` | Review diff | `## Test Results` + git diff | `## Review Findings` |
+| `audit` | Review | `.claude/skills/review/audit.md` | OWASP audit | `## Review Findings` + git diff | `## Review Findings` (append) |
+| `deploy` | Integration | `.claude/skills/integration/deploy.md` | Pre-deploy gate | `## Review Findings` | `## Deploy Checklist` |
+| `ship` | Integration | `.claude/skills/integration/ship.md` | Validate deploy | `## Deploy Checklist` | `## Post-Deploy` |
+| `close` | Integration | `.claude/skills/integration/close.md` | After merge | Full `ACTIVE_TASK.md` | `task-log/` + `.claude/context/` + ACTIVE_TASK.md reset |
 
 ---
 
@@ -32,9 +32,9 @@ Single-page lookup: what skill handles what, in what order, reading and writing 
 | Workflow | File | Use When | Skippable Steps |
 |----------|------|----------|-----------------|
 | `full-sdlc` | `.claude/workflows/full-sdlc.md` | New feature, complete lifecycle | None |
-| `bug-fix` | `.claude/workflows/bug-fix.md` | Fixing a bug, targeted change | `security-audit` (if no auth/input touch), `deploy-checklist` (if not hotfix) |
-| `feature-build` | `.claude/workflows/feature-build.md` | Feature with lighter planning | `risk-assessment` (small/low-risk features), `deploy-checklist` (if not deploying this cycle) |
-| `refactor` | `.claude/workflows/refactor.md` | Structural improvement, no behavior change | `deploy-checklist`, `post-deploy` (unless DB/config touched) |
+| `bug-fix` | `.claude/workflows/bug-fix.md` | Fixing a bug, targeted change | `audit` (if no auth/input touch), `deploy` (if not hotfix) |
+| `feature-build` | `.claude/workflows/feature-build.md` | Feature with lighter planning | `risk` (small/low-risk features), `deploy` (if not deploying this cycle) |
+| `refactor` | `.claude/workflows/refactor.md` | Structural improvement, no behavior change | `deploy`, `ship` (unless DB/config touched) |
 
 ---
 
@@ -54,7 +54,7 @@ Skills write sections in this order. Each skill hard-blocks if its required prio
 ## Post-Deploy        ← post-deploy
 ```
 
-`close-task` reads all sections, then resets ACTIVE_TASK.md to empty schema.
+`close` reads all sections, then resets ACTIVE_TASK.md to empty schema.
 
 ---
 
@@ -63,13 +63,13 @@ Skills write sections in this order. Each skill hard-blocks if its required prio
 | Tool | Type | Install | When to Use |
 |------|------|---------|-------------|
 | [caveman](https://github.com/juliusbrussee/caveman) | Plugin | `/plugin install caveman` | All sessions — reduces output tokens ~75% |
-| [grill-me](https://github.com/mattpocock/skills) | Skill | auto-loaded | During `decision-grill` — stress-tests ADRs one question at a time |
+| [grill-me](https://github.com/mattpocock/skills) | Skill | auto-loaded | During `grill` — stress-tests ADRs one question at a time |
 
 ---
 
 ## Context Files
 
-Generated by `close-task`, loaded at session start via `CLAUDE.md`.
+Generated by `close`, loaded at session start via `CLAUDE.md`.
 
 | File | Updated When | Contains |
 |------|-------------|---------|
@@ -82,19 +82,19 @@ Generated by `close-task`, loaded at session start via `CLAUDE.md`.
 
 | Question | Skill |
 |----------|-------|
-| I have a task description, where do I start? | `capture-requirements` |
-| I need to scaffold a new project | `init-project` |
-| I need a system design | `architecture-design` |
-| I need to decide between options | `decision-grill` |
-| I need to know what could go wrong | `risk-assessment` |
-| I need to write the code | `code-gen` |
+| I have a task description, where do I start? | `task` |
+| I need to scaffold a new project | `init` |
+| I need a system design | `design` |
+| I need to decide between options | `grill` |
+| I need to know what could go wrong | `risk` |
+| I need to write the code | `code` |
 | I need to write tests for a criterion | `tdd` |
 | I need to clean up the code | `refactor` |
-| I need a test plan | `test-design` |
-| I need to know what's not tested | `coverage-analysis` |
-| I need to confirm requirements are met | `verification` |
-| I need a code review | `code-review` |
-| I need a security review | `security-audit` |
-| I'm ready to deploy | `deploy-checklist` |
-| I just deployed | `post-deploy` |
-| Task is done / merged | `close-task` |
+| I need a test plan | `tests` |
+| I need to know what's not tested | `coverage` |
+| I need to confirm requirements are met | `verify` |
+| I need a code review | `review` |
+| I need a security review | `audit` |
+| I'm ready to deploy | `deploy` |
+| I just deployed | `ship` |
+| Task is done / merged | `close` |

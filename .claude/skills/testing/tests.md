@@ -8,10 +8,10 @@ Reads: `ACTIVE_TASK.md` → `## Requirement` and `## Implementation Log`
 Writes: `ACTIVE_TASK.md` → `## Test Results` (plan section)
 
 **Hard block:** If `## Requirement` is empty:
-> "Run `capture-requirements` first. Output required in ACTIVE_TASK.md → ## Requirement."
+> "Run `task` first. Output required in ACTIVE_TASK.md → ## Requirement."
 
 **Hard block:** If `## Implementation Log` is empty:
-> "Run `code-gen` first. Output required in ACTIVE_TASK.md → ## Implementation Log."
+> "Run `code` first. Output required in ACTIVE_TASK.md → ## Implementation Log."
 
 ## Meta-Prompt
 
@@ -36,8 +36,8 @@ Self-inject from `ACTIVE_TASK.md → ## Requirement` (acceptanceCriteria, succes
 ```javascript
 const requirement = readActiveTask("## Requirement");
 const implLog = readActiveTask("## Implementation Log");
-if (!requirement) hardBlock("capture-requirements");
-if (!implLog) hardBlock("code-gen");
+if (!requirement) hardBlock("task");
+if (!implLog) hardBlock("code");
 
 const testPlan = await agent(enrichedMetaPrompt, { schema: TEST_PLAN_SCHEMA });
 // Output: { scenarios: [...], edgeCases: [...], testData: [...], coverageTarget, executionOrder }
@@ -49,7 +49,7 @@ writeActiveTask("## Test Results", { plan: testPlan, status: "planned" });
 
 - After `refactor` completes implementation phase
 - User says "design tests", "what tests do we need?", "test plan"
-- Before `coverage-analysis` or `verification`
+- Before `coverage` or `verify`
 
 ## Output
 
@@ -69,7 +69,7 @@ Writes to `ACTIVE_TASK.md → ## Test Results`:
 - [ ] Set coverage target with rationale
 - [ ] Define execution order (unit → integration → e2e)
 - [ ] Write test plan to ACTIVE_TASK.md → ## Test Results
-- [ ] Next: run `coverage-analysis`
+- [ ] Next: run `coverage`
 
 ## Example
 
@@ -109,4 +109,4 @@ Implementation Log: 14 TDD tests green, 81% coverage, files: src/services/, src/
 
 ---
 
-*Next: `coverage-analysis` (Testing phase).*
+*Next: `coverage` (Testing phase).*

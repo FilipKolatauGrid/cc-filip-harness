@@ -8,7 +8,7 @@ Reads: `ACTIVE_TASK.md` → `## Requirement`
 Writes: `ACTIVE_TASK.md` → `## Design`
 
 **Hard block:** If `## Requirement` is empty:
-> "Run `capture-requirements` first. Output required in ACTIVE_TASK.md → ## Requirement."
+> "Run `task` first. Output required in ACTIVE_TASK.md → ## Requirement."
 
 ## Meta-Prompt
 
@@ -27,13 +27,13 @@ Self-inject from `ACTIVE_TASK.md → ## Requirement`: extract `type`, `goal`, `t
 3. **API contracts** — endpoints, methods, request/response shapes, error codes
 4. **Data flow** — step-by-step request lifecycle through components
 5. **Tech stack decisions** — confirmed choices with one-line rationale each
-6. **Open questions** — design choices that need ADR (hand off to `decision-grill`)
+6. **Open questions** — design choices that need ADR (hand off to `grill`)
 
 ## Pattern
 
 ```javascript
 const requirement = readActiveTask("## Requirement");
-if (!requirement) hardBlock("capture-requirements");
+if (!requirement) hardBlock("task");
 
 const design = await agent(enrichedMetaPrompt, { schema: DESIGN_SCHEMA });
 // Output: { components, dataModel, apiContracts, dataFlow, techStack, openQuestions }
@@ -43,7 +43,7 @@ writeActiveTask("## Design", design);
 
 ## Trigger Points
 
-- After `capture-requirements` or `init-project` outputs structured requirement
+- After `task` or `init` outputs structured requirement
 - User says "design this", "architect this", "what's the system design?"
 - Before any implementation work begins
 
@@ -55,7 +55,7 @@ Write to `ACTIVE_TASK.md → ## Design`:
 - API contracts (if applicable)
 - Data flow narrative
 - Tech stack decisions
-- Open questions flagged for `decision-grill`
+- Open questions flagged for `grill`
 
 ## Checklist
 
@@ -67,7 +67,7 @@ Write to `ACTIVE_TASK.md → ## Design`:
 - [ ] Describe request lifecycle (data flow)
 - [ ] Confirm tech stack decisions; flag open choices for decision-grill
 - [ ] Write output to ACTIVE_TASK.md → ## Design
-- [ ] Next: run `decision-grill`
+- [ ] Next: run `grill`
 
 ## Example
 
@@ -112,4 +112,4 @@ Request → UserRouter (validate) → UserService (business rules)
 
 ---
 
-*Next: `decision-grill` (Planning phase).*
+*Next: `grill` (Planning phase).*

@@ -12,10 +12,10 @@ Writes:
 - `ACTIVE_TASK.md` — reset to empty fixed schema
 
 **Hard block:** If `## Requirement` is empty:
-> "Nothing to close. ACTIVE_TASK.md has no requirement. Run `capture-requirements` to start a task."
+> "Nothing to close. ACTIVE_TASK.md has no requirement. Run `task` to start a task."
 
 **Hard block:** If `## Review Findings` is empty:
-> "Task not reviewed. Run `code-review` before closing."
+> "Task not reviewed. Run `review` before closing."
 
 ## Meta-Prompt
 
@@ -48,8 +48,8 @@ Derive from ## Requirement `type` and `techStack`:
 
 ```javascript
 const activeTask = readFullActiveTask();
-if (!activeTask["## Requirement"]) hardBlock("capture-requirements");
-if (!activeTask["## Review Findings"]) hardBlock("code-review");
+if (!activeTask["## Requirement"]) hardBlock("task");
+if (!activeTask["## Review Findings"]) hardBlock("review");
 
 const type = deriveTypeTag(activeTask);
 const slug = slugify(activeTask["## Requirement"].goal);
@@ -120,7 +120,7 @@ Generated: YYYYMMDD — updated each task close.
 - [ ] If BE files touched: regenerate .claude/context/BE_CONTEXT.md
 - [ ] Reset ACTIVE_TASK.md to empty fixed schema
 - [ ] Commit: task-log/ + context updates + ACTIVE_TASK.md reset
-- [ ] Next: `post-deploy` (if deploying) or `capture-requirements` (next task)
+- [ ] Next: `ship` (if deploying) or `task` (next task)
 
 ## Example
 
@@ -170,4 +170,4 @@ argon2id work factor tuned for staging; verify on prod hardware
 
 ---
 
-*Next: `post-deploy` (if deploying now) or `capture-requirements` (next task).*
+*Next: `ship` (if deploying now) or `task` (next task).*

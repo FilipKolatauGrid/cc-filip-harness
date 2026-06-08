@@ -10,8 +10,8 @@ This is a **routing-table reference doc**, not an auto-runner. Each phase lists 
 
 | Step | Skill | Gate |
 |------|-------|------|
-| 1 | `capture-requirements` | Entry point — no prior gate |
-| 2 | `init-project` | ## Requirement populated |
+| 1 | `task` | Entry point — no prior gate |
+| 2 | `init` | ## Requirement populated |
 
 **Gate to Planning:** ## Requirement must be populated with type, goal, acceptanceCriteria, constraints.
 
@@ -21,9 +21,9 @@ This is a **routing-table reference doc**, not an auto-runner. Each phase lists 
 
 | Step | Skill | Gate |
 |------|-------|------|
-| 3 | `architecture-design` | ## Requirement populated |
-| 4 | `decision-grill` | ## Design populated |
-| 5 | `risk-assessment` | ## Design + ## ADRs populated |
+| 3 | `design` | ## Requirement populated |
+| 4 | `grill` | ## Design populated |
+| 5 | `risk` | ## Design + ## ADRs populated |
 
 **Gate to Implementation:** ## Design, ## ADRs, ## Risks all populated.
 
@@ -33,7 +33,7 @@ This is a **routing-table reference doc**, not an auto-runner. Each phase lists 
 
 | Step | Skill | Gate |
 |------|-------|------|
-| 6 | `code-gen` | ## Design populated |
+| 6 | `code` | ## Design populated |
 | 7 | `tdd` | ## Implementation Log populated |
 | 8 | `refactor` | ## Implementation Log populated + all TDD green |
 
@@ -45,9 +45,9 @@ This is a **routing-table reference doc**, not an auto-runner. Each phase lists 
 
 | Step | Skill | Gate |
 |------|-------|------|
-| 9 | `test-design` | ## Requirement + ## Implementation Log populated |
-| 10 | `coverage-analysis` | ## Test Results (plan) populated |
-| 11 | `verification` | ## Test Results + coverage gaps closed |
+| 9 | `tests` | ## Requirement + ## Implementation Log populated |
+| 10 | `coverage` | ## Test Results (plan) populated |
+| 11 | `verify` | ## Test Results + coverage gaps closed |
 
 **Gate to Review:** ## Test Results populated with PASS verdict.
 
@@ -57,8 +57,8 @@ This is a **routing-table reference doc**, not an auto-runner. Each phase lists 
 
 | Step | Skill | Gate |
 |------|-------|------|
-| 12 | `code-review` | ## Test Results PASS verdict |
-| 13 | `security-audit` | ## Review Findings populated |
+| 12 | `review` | ## Test Results PASS verdict |
+| 13 | `audit` | ## Review Findings populated |
 
 **Gate to Integration:** ## Review Findings populated. All CRITICAL + HIGH findings resolved.
 
@@ -68,10 +68,10 @@ This is a **routing-table reference doc**, not an auto-runner. Each phase lists 
 
 | Step | Skill | Gate |
 |------|-------|------|
-| 14 | `deploy-checklist` | ## Review Findings populated, no unresolved CRITICAL |
+| 14 | `deploy` | ## Review Findings populated, no unresolved CRITICAL |
 | 15 | *(merge to branch)* | Deploy checklist complete |
-| 16 | `close-task` | Code merged — archives task, updates context, resets ACTIVE_TASK.md |
-| 17 | `post-deploy` *(optional)* | ## Deploy Checklist populated — run after prod deploy |
+| 16 | `close` | Code merged — archives task, updates context, resets ACTIVE_TASK.md |
+| 17 | `ship` *(optional)* | ## Deploy Checklist populated — run after prod deploy |
 
 **Task closed:** `task-log/YYYYMMDD-[TYPE]-slug.md` written. `.claude/context/` updated. ACTIVE_TASK.md reset.
 
@@ -81,10 +81,10 @@ This is a **routing-table reference doc**, not an auto-runner. Each phase lists 
 
 | Situation | Action |
 |-----------|--------|
-| Review BLOCKED | Fix findings → re-run `code-review` |
-| Verification FAIL | Fix blockers → re-run `verification` |
-| Security CRITICAL_BLOCK | Fix vulns → re-run `security-audit` |
-| Post-deploy smoke test fails | Execute rollback plan from ## Deploy Checklist → run `post-deploy` again |
+| Review BLOCKED | Fix findings → re-run `review` |
+| Verification FAIL | Fix blockers → re-run `verify` |
+| Security CRITICAL_BLOCK | Fix vulns → re-run `audit` |
+| Post-deploy smoke test fails | Execute rollback plan from ## Deploy Checklist → run `ship` again |
 | Rolled back | Do NOT close-task — fix root cause, re-deploy, then close |
 
 ---
@@ -92,6 +92,6 @@ This is a **routing-table reference doc**, not an auto-runner. Each phase lists 
 ## Decision Points
 
 - **risk-assessment flags HIGH risk:** pause — address mitigation before implementation
-- **decision-grill produces conflicting ADRs:** re-run `architecture-design` with resolved constraints
-- **coverage-analysis below target:** write missing tests before `verification`
-- **refactor introduces regression:** re-run full test suite before proceeding to `test-design`
+- **decision-grill produces conflicting ADRs:** re-run `design` with resolved constraints
+- **coverage-analysis below target:** write missing tests before `verify`
+- **refactor introduces regression:** re-run full test suite before proceeding to `tests`

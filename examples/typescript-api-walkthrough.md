@@ -218,7 +218,7 @@ Fix HIGH (IP spoofing mitigation — trustProxy config + docs) and IMPORTANT bef
 
 ## Phase 6: Integration
 
-### `close-task`
+### `close`
 
 ```
 task-log/20240120-[BE]-add-rate-limiting-to-nestjs-api.md  ← created

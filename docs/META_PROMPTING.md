@@ -64,11 +64,11 @@ Each skill injects context into its meta-prompt:
 
 | Skill | Context | Generates |
 |-------|---------|-----------|
-| `capture-requirements` | User text | Structured task + acceptance criteria |
-| `architecture-design` | Task + codebase | System design + component diagram |
-| `code-gen` | Design + stack | Implementation skeleton + patterns |
-| `test-design` | Code + coverage gaps | Test case list + fixtures |
-| `code-review` | Diff + context | Review criteria + checklist |
+| `task` | User text | Structured task + acceptance criteria |
+| `design` | Task + codebase | System design + component diagram |
+| `code` | Design + stack | Implementation skeleton + patterns |
+| `tests` | Code + coverage gaps | Test case list + fixtures |
+| `review` | Diff + context | Review criteria + checklist |
 
 ## Pattern: Multi-Shot Prompting
 

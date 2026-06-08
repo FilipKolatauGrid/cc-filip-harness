@@ -8,7 +8,7 @@ Reads: `ACTIVE_TASK.md` → `## Design`
 Writes: project filesystem + appends entry to `ACTIVE_TASK.md → ## Implementation Log`
 
 **Hard block:** If `## Design` is empty:
-> "Run `architecture-design` first. Output required in ACTIVE_TASK.md → ## Design."
+> "Run `design` first. Output required in ACTIVE_TASK.md → ## Design."
 
 ## Meta-Prompt
 
@@ -31,7 +31,7 @@ Self-inject from `ACTIVE_TASK.md → ## Design`: extract `components`, `dataMode
 
 ```javascript
 const design = readActiveTask("## Design");
-if (!design) hardBlock("architecture-design");
+if (!design) hardBlock("design");
 
 const plan = await agent(planningMetaPrompt, { schema: FILE_PLAN_SCHEMA });
 // Output: { files: [{ path, purpose, dependencies }], order: [...] }
@@ -50,7 +50,7 @@ appendToActiveTask("## Implementation Log", {
 
 ## Trigger Points
 
-- After `risk-assessment` completes planning phase
+- After `risk` completes planning phase
 - User says "generate the code", "implement this", "write the implementation"
 - All planning sections (Design, ADRs, Risks) present in ACTIVE_TASK.md
 

@@ -8,7 +8,7 @@ Reads: `ACTIVE_TASK.md` → `## Test Results` and current git diff
 Writes: `ACTIVE_TASK.md` → `## Review Findings`
 
 **Hard block:** If `## Test Results` is empty:
-> "Run `test-design` first. Output required in ACTIVE_TASK.md → ## Test Results."
+> "Run `tests` first. Output required in ACTIVE_TASK.md → ## Test Results."
 
 **Hard block:** If verification verdict in `## Test Results` is not PASS:
 > "Verification must pass before code review. Fix blockers in ## Test Results first."
@@ -35,8 +35,8 @@ Self-inject from `ACTIVE_TASK.md → ## Test Results` (verdict, matrix) and git 
 
 ```javascript
 const testResults = readActiveTask("## Test Results");
-if (!testResults) hardBlock("test-design");
-if (!verificationPassed(testResults)) hardBlock("verification");
+if (!testResults) hardBlock("tests");
+if (!verificationPassed(testResults)) hardBlock("verify");
 
 const diff = await runGitDiff();
 
@@ -50,9 +50,9 @@ writeActiveTask("## Review Findings", findings);
 
 ## Trigger Points
 
-- After `verification` returns PASS verdict
+- After `verify` returns PASS verdict
 - User says "review this", "code review", "/code-review"
-- Before `security-audit` and `deploy-checklist`
+- Before `audit` and `deploy`
 
 ## Output
 
@@ -71,7 +71,7 @@ Writes to `ACTIVE_TASK.md → ## Review Findings`:
 - [ ] Tag each finding: CRITICAL / IMPORTANT / MINOR
 - [ ] State verdict: APPROVED / APPROVED_WITH_CHANGES / BLOCKED
 - [ ] Write findings + verdict to ACTIVE_TASK.md → ## Review Findings
-- [ ] Next: run `security-audit`
+- [ ] Next: run `audit`
 
 ## Example
 
@@ -94,4 +94,4 @@ Fix CRITICAL and IMPORTANT before merge. MINOR at discretion.
 
 ---
 
-*Next: `security-audit` (Review phase).*
+*Next: `audit` (Review phase).*

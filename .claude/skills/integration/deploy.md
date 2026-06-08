@@ -8,7 +8,7 @@ Reads: `ACTIVE_TASK.md` → `## Review Findings`
 Writes: `ACTIVE_TASK.md` → `## Deploy Checklist`
 
 **Hard block:** If `## Review Findings` is empty:
-> "Run `code-review` first. Output required in ACTIVE_TASK.md → ## Review Findings."
+> "Run `review` first. Output required in ACTIVE_TASK.md → ## Review Findings."
 
 **Hard block:** If any CRITICAL finding in `## Review Findings` is unresolved:
 > "Resolve all CRITICAL findings in ## Review Findings before deploying."
@@ -38,8 +38,8 @@ Self-inject from `ACTIVE_TASK.md → ## Review Findings`: extract findings, verd
 
 ```javascript
 const reviewFindings = readActiveTask("## Review Findings");
-if (!reviewFindings) hardBlock("code-review");
-if (hasCriticalUnresolved(reviewFindings)) hardBlock("resolve-critical-findings");
+if (!reviewFindings) hardBlock("review");
+if (hasCriticalUnresolved(reviewFindings)) stop("Resolve all CRITICAL findings in ## Review Findings before deploying.");
 
 const checklist = await agent(enrichedMetaPrompt, { schema: DEPLOY_CHECKLIST_SCHEMA });
 // Output: { gate, envChecklist, migrationSteps, deploySteps, smokeTests, rollbackPlan, notifications }
@@ -49,7 +49,7 @@ writeActiveTask("## Deploy Checklist", checklist);
 
 ## Trigger Points
 
-- After `security-audit` completes and all CRITICAL findings are resolved
+- After `audit` completes and all CRITICAL findings are resolved
 - User says "deploy checklist", "pre-deploy", "ready to ship?"
 - Before any production deployment
 
@@ -75,7 +75,7 @@ Writes to `ACTIVE_TASK.md → ## Deploy Checklist`:
 - [ ] Write rollback plan (exact commands, not just "revert")
 - [ ] Identify who to notify (team, stakeholders, downstream consumers)
 - [ ] Write checklist to ACTIVE_TASK.md → ## Deploy Checklist
-- [ ] Next: run `post-deploy`
+- [ ] Next: run `ship`
 
 ## Example
 
@@ -125,4 +125,4 @@ All CRITICAL and HIGH findings resolved. MEDIUM (response schema) fixed in PR #4
 
 ---
 
-*Next: `post-deploy` (Integration phase).*
+*Next: `ship` (Integration phase).*

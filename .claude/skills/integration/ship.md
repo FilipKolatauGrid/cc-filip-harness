@@ -8,7 +8,7 @@ Reads: `ACTIVE_TASK.md` → `## Deploy Checklist`
 Writes: `ACTIVE_TASK.md` → `## Post-Deploy`
 
 **Hard block:** If `## Deploy Checklist` is empty:
-> "Run `deploy-checklist` first. Output required in ACTIVE_TASK.md → ## Deploy Checklist."
+> "Run `deploy` first. Output required in ACTIVE_TASK.md → ## Deploy Checklist."
 
 ## Meta-Prompt
 
@@ -32,7 +32,7 @@ Self-inject from `ACTIVE_TASK.md → ## Deploy Checklist`: extract smokeTests, r
 
 ```javascript
 const deployChecklist = readActiveTask("## Deploy Checklist");
-if (!deployChecklist) hardBlock("deploy-checklist");
+if (!deployChecklist) hardBlock("deploy");
 
 const smokeResults = await runSmokeTests(deployChecklist.smokeTests);
 const metrics = await checkMonitoring(deployChecklist.monitoringTargets);
@@ -51,7 +51,7 @@ writeActiveTask("## Post-Deploy", postDeploy);
 ## Trigger Points
 
 - Immediately after deployment completes
-- User says "post-deploy", "verify deploy", "deployment done"
+- User says "ship", "verify deploy", "deployment done"
 - Monitoring alerts fire after a deploy
 
 ## Output

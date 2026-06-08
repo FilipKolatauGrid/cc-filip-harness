@@ -8,7 +8,7 @@ Reads: `ACTIVE_TASK.md` → `## Review Findings` and current git diff
 Writes: appends security findings to `ACTIVE_TASK.md → ## Review Findings`
 
 **Hard block:** If `## Review Findings` is empty:
-> "Run `code-review` first. Output required in ACTIVE_TASK.md → ## Review Findings."
+> "Run `review` first. Output required in ACTIVE_TASK.md → ## Review Findings."
 
 ## Meta-Prompt
 
@@ -33,7 +33,7 @@ Self-inject from `ACTIVE_TASK.md → ## Review Findings` (existing findings, ver
 
 ```javascript
 const reviewFindings = readActiveTask("## Review Findings");
-if (!reviewFindings) hardBlock("code-review");
+if (!reviewFindings) hardBlock("review");
 
 const diff = await runGitDiff();
 
@@ -47,9 +47,9 @@ appendToActiveTask("## Review Findings", securityFindings);
 
 ## Trigger Points
 
-- After `code-review` writes ## Review Findings
+- After `review` writes ## Review Findings
 - User says "security audit", "security review", "check for vulnerabilities"
-- Before `deploy-checklist` — security audit must complete before deploy
+- Before `deploy` — security audit must complete before deploy
 
 ## Output
 
@@ -70,7 +70,7 @@ Appends to `ACTIVE_TASK.md → ## Review Findings`:
 - [ ] Flag dependencies with potential CVEs (note: manual `pip audit` / `npm audit` recommended)
 - [ ] State security verdict: CLEAR / FINDINGS_REQUIRE_FIX / CRITICAL_BLOCK
 - [ ] Append findings to ACTIVE_TASK.md → ## Review Findings
-- [ ] Next: run `deploy-checklist` (if CLEAR or FINDINGS_REQUIRE_FIX resolved)
+- [ ] Next: run `deploy` (if CLEAR or FINDINGS_REQUIRE_FIX resolved)
 
 ## Example
 
@@ -94,4 +94,4 @@ Fix HIGH before merge. MEDIUM and LOW before deploy.
 
 ---
 
-*Next: `deploy-checklist` (Integration phase).*
+*Next: `deploy` (Integration phase).*

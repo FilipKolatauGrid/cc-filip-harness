@@ -8,7 +8,7 @@ Reads: `ACTIVE_TASK.md` → `## Test Results`
 Writes: appends gap analysis to `ACTIVE_TASK.md → ## Test Results`
 
 **Hard block:** If `## Test Results` is empty:
-> "Run `test-design` first. Output required in ACTIVE_TASK.md → ## Test Results."
+> "Run `tests` first. Output required in ACTIVE_TASK.md → ## Test Results."
 
 ## Meta-Prompt
 
@@ -31,7 +31,7 @@ Self-inject from `ACTIVE_TASK.md → ## Test Results`: extract `plan`, `coverage
 
 ```javascript
 const testResults = readActiveTask("## Test Results");
-if (!testResults) hardBlock("test-design");
+if (!testResults) hardBlock("tests");
 
 // Run coverage tool for the stack
 const coverageData = await runCoverageTool(); // e.g. pytest --cov, jest --coverage
@@ -46,9 +46,9 @@ appendToActiveTask("## Test Results", { coverageAnalysis: analysis });
 
 ## Trigger Points
 
-- After `test-design` writes the test plan
+- After `tests` writes the test plan
 - User says "check coverage", "what's not tested?", "coverage gaps"
-- Before `verification`
+- Before `verify`
 
 ## Output
 
@@ -67,7 +67,7 @@ Appends to `ACTIVE_TASK.md → ## Test Results`:
 - [ ] Write concrete missing test specs for each gap
 - [ ] State verdict: meets target or delta needed
 - [ ] Append gap analysis to ACTIVE_TASK.md → ## Test Results
-- [ ] Next: run `verification`
+- [ ] Next: run `verify`
 
 ## Example
 
@@ -106,4 +106,4 @@ Below target: 83% actual vs. 85% target. Write 4 missing tests to close gap.
 
 ---
 
-*Next: `verification` (Testing phase).*
+*Next: `verify` (Testing phase).*

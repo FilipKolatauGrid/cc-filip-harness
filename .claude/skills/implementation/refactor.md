@@ -8,7 +8,7 @@ Reads: `ACTIVE_TASK.md` → `## Implementation Log`
 Writes: appends refactor summary to `ACTIVE_TASK.md → ## Implementation Log`
 
 **Hard block:** If `## Implementation Log` is empty:
-> "Run `code-gen` first. Output required in ACTIVE_TASK.md → ## Implementation Log."
+> "Run `code` first. Output required in ACTIVE_TASK.md → ## Implementation Log."
 
 ## Meta-Prompt
 
@@ -30,7 +30,7 @@ Self-inject from `ACTIVE_TASK.md → ## Implementation Log`: extract `filesCreat
 
 ```javascript
 const implLog = readActiveTask("## Implementation Log");
-if (!implLog) hardBlock("code-gen");
+if (!implLog) hardBlock("code");
 
 const targets = await agent(analysisMetaPrompt(implLog), { schema: REFACTOR_TARGETS_SCHEMA });
 // Output: [{ file, function, smell, fix, risk }]
@@ -43,7 +43,7 @@ for (const target of targets) {
 appendToActiveTask("## Implementation Log", {
   refactorsApplied: targets.map(t => t.smell),
   testStatus: "all-green",
-  nextStep: "test-design"
+  nextStep: "tests"
 });
 ```
 
@@ -51,7 +51,7 @@ appendToActiveTask("## Implementation Log", {
 
 - After `tdd` completes all acceptance criteria (green)
 - User says "clean this up", "refactor", "simplify this code"
-- Code review identifies structural issues before `code-review` phase
+- Code review identifies structural issues before `review` phase
 - Any time tests are green and structure needs improvement
 
 ## Output
@@ -70,7 +70,7 @@ Appends refactor summary to `ACTIVE_TASK.md → ## Implementation Log`:
 - [ ] Apply each refactor; run tests after each change
 - [ ] Confirm full suite still green after all changes
 - [ ] Append refactor summary to ACTIVE_TASK.md → ## Implementation Log
-- [ ] Next: run `test-design`
+- [ ] Next: run `tests`
 
 ## Example
 
@@ -95,4 +95,4 @@ Files changed: services/user.py, repositories/user.py, routers/users.py
 
 ---
 
-*Next: `test-design` (Testing phase).*
+*Next: `tests` (Testing phase).*

@@ -8,7 +8,7 @@ Reads: `ACTIVE_TASK.md` → `## Requirement`
 Writes: project file system + appends scaffold summary to `ACTIVE_TASK.md → ## Requirement`
 
 **Hard block:** If `## Requirement` is empty:
-> "Run `capture-requirements` first. Output required in ACTIVE_TASK.md → ## Requirement."
+> "Run `task` first. Output required in ACTIVE_TASK.md → ## Requirement."
 
 ## Meta-Prompt
 
@@ -33,7 +33,7 @@ Self-inject from `ACTIVE_TASK.md → ## Requirement`: extract `type`, `goal`, `t
 ```javascript
 // Self-inject from ACTIVE_TASK.md
 const requirement = readActiveTask("## Requirement");
-if (!requirement) hardBlock("capture-requirements");
+if (!requirement) hardBlock("task");
 
 // Generate scaffold
 const scaffold = await agent(enrichedMetaPrompt, { schema: SCAFFOLD_SCHEMA });
@@ -45,7 +45,7 @@ appendToActiveTask("## Requirement", `\n### Scaffold\n${scaffold.summary}`);
 
 ## Trigger Points
 
-- After `capture-requirements` outputs structured requirement
+- After `task` outputs structured requirement
 - User says "scaffold", "init", "set up project structure", "create new project"
 - Greenfield project with no existing structure
 
@@ -66,7 +66,7 @@ Appends scaffold summary to `ACTIVE_TASK.md → ## Requirement`:
 - [ ] Produce first-commit checklist
 - [ ] Ask clarifying questions for ambiguous choices
 - [ ] Append scaffold summary to ACTIVE_TASK.md → ## Requirement
-- [ ] Next: run `architecture-design`
+- [ ] Next: run `design`
 
 ## Example
 
@@ -87,4 +87,4 @@ techStack: "Python/FastAPI", constraints: { timeline: "2 weeks" }
 
 ---
 
-*Next: `architecture-design` (Planning phase).*
+*Next: `design` (Planning phase).*

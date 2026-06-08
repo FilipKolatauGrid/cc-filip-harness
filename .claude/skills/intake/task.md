@@ -101,7 +101,7 @@ const requirement = await agent(generatedMetaPrompt, {
 - [ ] Identify ambiguities → ask questions
 - [ ] Suggest next phase (usually Planning)
 - [ ] Write structured output to ACTIVE_TASK.md → ## Requirement
-- [ ] Next: run `init-project` (new project) or `architecture-design` (existing project)
+- [ ] Next: run `init` (new project) or `design` (existing project)
 
 ## Example: Bug Report
 

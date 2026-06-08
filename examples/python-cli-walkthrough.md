@@ -209,7 +209,7 @@ Fix MINOR items before merge (low risk, clean up only).
 
 ## Phase 6: Integration
 
-### `close-task`
+### `close`
 
 ```
 task-log/20240115-[FE]-add-csv-export-to-data-pipeline-cli.md  ← created
@@ -225,7 +225,7 @@ ACTIVE_TASK.md  ← reset to empty schema
 
 ## Key Takeaways
 
-- `risk-assessment` correctly skipped for single-layer, no-external-dep, short-timeline feature
+- `risk` correctly skipped for single-layer, no-external-dep, short-timeline feature
 - Streaming criterion caught a real bug (naive list load) in TDD phase — not post-hoc
 - ADR-001 on column order prevented a design debate during implementation
-- `close-task` correctly tags [BE] from techStack=Python/CLI even though UI has no FE layer
+- `close` correctly tags [BE] from techStack=Python/CLI even though UI has no FE layer

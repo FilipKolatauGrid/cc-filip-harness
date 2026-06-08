@@ -8,10 +8,10 @@ Reads: `ACTIVE_TASK.md` → `## Requirement` and `## Test Results`
 Writes: appends traceability matrix + verdict to `ACTIVE_TASK.md → ## Test Results`
 
 **Hard block:** If `## Requirement` is empty:
-> "Run `capture-requirements` first. Output required in ACTIVE_TASK.md → ## Requirement."
+> "Run `task` first. Output required in ACTIVE_TASK.md → ## Requirement."
 
 **Hard block:** If `## Test Results` is empty:
-> "Run `test-design` first. Output required in ACTIVE_TASK.md → ## Test Results."
+> "Run `tests` first. Output required in ACTIVE_TASK.md → ## Test Results."
 
 ## Meta-Prompt
 
@@ -34,8 +34,8 @@ Self-inject from `ACTIVE_TASK.md → ## Requirement` (acceptanceCriteria, succes
 ```javascript
 const requirement = readActiveTask("## Requirement");
 const testResults = readActiveTask("## Test Results");
-if (!requirement) hardBlock("capture-requirements");
-if (!testResults) hardBlock("test-design");
+if (!requirement) hardBlock("task");
+if (!testResults) hardBlock("tests");
 
 const matrix = await agent(enrichedMetaPrompt, { schema: VERIFICATION_SCHEMA });
 // Output: { matrix: [...], metrics: [...], verdict: "PASS"|"FAIL", blockers: [...] }
@@ -45,9 +45,9 @@ appendToActiveTask("## Test Results", { verification: matrix });
 
 ## Trigger Points
 
-- After `coverage-analysis` closes all high-priority gaps
+- After `coverage` closes all high-priority gaps
 - User says "verify this", "does it meet requirements?", "acceptance check"
-- Before `code-review` — verification must pass before review phase
+- Before `review` — verification must pass before review phase
 
 ## Output
 
@@ -67,7 +67,7 @@ Appends to `ACTIVE_TASK.md → ## Test Results`:
 - [ ] State verdict: PASS only if all criteria green and coverage target met
 - [ ] List blockers with recommended fix for any FAIL
 - [ ] Append matrix + verdict to ACTIVE_TASK.md → ## Test Results
-- [ ] Next: run `code-review` (if PASS) or fix blockers and re-verify (if FAIL)
+- [ ] Next: run `review` (if PASS) or fix blockers and re-verify (if FAIL)
 
 ## Example
 
@@ -99,4 +99,4 @@ All acceptance criteria satisfied. Coverage target met. Ready for code-review.
 
 ---
 
-*Next: `code-review` (Review phase).*
+*Next: `review` (Review phase).*

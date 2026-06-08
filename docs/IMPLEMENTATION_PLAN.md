@@ -6,7 +6,7 @@
 
 **Architecture:** User manually invokes skills in phase order. Each skill (1) reads `ACTIVE_TASK.md`, (2) hard-blocks if prior phase section is missing, (3) self-injects context, (4) does its work, (5) writes output to its own named section, (6) tells user what to run next. No auto-orchestration. Workflows are routing-table reference docs, not runners. State persists across sessions via `ACTIVE_TASK.md`.
 
-**Tech Stack:** Markdown only. No frontmatter. Pattern: descriptive guidance (match `capture-requirements.md`).
+**Tech Stack:** Markdown only. No frontmatter. Pattern: descriptive guidance (match `task.md`).
 
 ---
 
@@ -22,11 +22,11 @@
 | Skill style | Descriptive guidance, concrete example I/O |
 | File format | Plain Markdown, no YAML frontmatter |
 | Discovery | Separate `SKILL_REGISTRY.md` |
-| grill-me integration | Reference-only in `decision-grill.md` (ADR stress-test phase) |
+| grill-me integration | Reference-only in `grill.md` (ADR stress-test phase) |
 | caveman integration | Reference-only: one line in `CLAUDE.md` + one row in `SKILL_REGISTRY.md` Meta/DX section |
 | Task archival | `task-log/YYYYMMDD-[TYPE]-slug.md` per completed task; types: [FE][BE][FULLSTACK][BUGFIX][REFACTOR][INFRA][DOCS] |
-| Context caching | `.claude/context/FE_CONTEXT.md` + `BE_CONTEXT.md` — regenerated on `close-task`, loaded at session init via `CLAUDE.md` |
-| Task closure trigger | New `close-task` skill (integration/) — runs after merge, not post-deploy; resets ACTIVE_TASK.md |
+| Context caching | `.claude/context/FE_CONTEXT.md` + `BE_CONTEXT.md` — regenerated on `close`, loaded at session init via `CLAUDE.md` |
+| Task closure trigger | New `close` skill (integration/) — runs after merge, not post-deploy; resets ACTIVE_TASK.md |
 
 ---
 
@@ -74,26 +74,26 @@ Every harness project uses this file at repo root. Skills read upstream sections
 ```
 .claude/skills/
   intake/
-    capture-requirements.md    ← EXISTS (update: add ACTIVE_TASK read/write steps)
-    init-project.md            ← Task 1
+    task.md    ← EXISTS (update: add ACTIVE_TASK read/write steps)
+    init.md            ← Task 1
   planning/
-    architecture-design.md     ← Task 2
-    decision-grill.md          ← Task 3
-    risk-assessment.md         ← Task 4
+    design.md     ← Task 2
+    grill.md          ← Task 3
+    risk.md         ← Task 4
   implementation/
-    code-gen.md                ← Task 5
+    code.md                ← Task 5
     tdd.md                     ← Task 6
     refactor.md                ← Task 7
   testing/
-    test-design.md             ← Task 8
-    coverage-analysis.md       ← Task 9
-    verification.md            ← Task 10
+    tests.md             ← Task 8
+    coverage.md       ← Task 9
+    verify.md            ← Task 10
   review/
-    code-review.md             ← Task 11
-    security-audit.md          ← Task 12
+    review.md             ← Task 11
+    audit.md          ← Task 12
   integration/
-    deploy-checklist.md        ← Task 13
-    post-deploy.md             ← Task 14
+    deploy.md        ← Task 13
+    ship.md             ← Task 14
 ```
 
 ### Workflows (4 files — embed routing + phase sequence)
@@ -123,7 +123,7 @@ CLAUDE.md                      ← Task 18
 
 ## Canonical Skill Structure
 
-Every skill (except `capture-requirements.md`) follows this exact pattern:
+Every skill (except `task.md`) follows this exact pattern:
 
 ```markdown
 # [Skill Name]
@@ -181,9 +181,9 @@ Write to `ACTIVE_TASK.md → ## [This Section]`:
 
 ---
 
-## Task 0: Update `capture-requirements.md`
+## Task 0: Update `task.md`
 
-**File:** Modify `.claude/skills/intake/capture-requirements.md`
+**File:** Modify `.claude/skills/intake/task.md`
 
 Add the Prerequisites block and ACTIVE_TASK write step — it's the first skill so no hard block, but it must write to `## Requirement`.
 
@@ -203,26 +203,26 @@ Writes: `ACTIVE_TASK.md` → `## Requirement`
 Append to existing checklist:
 ```markdown
 - [ ] Write structured output to ACTIVE_TASK.md → ## Requirement
-- [ ] Next: run `init-project` (new project) or `architecture-design` (existing project)
+- [ ] Next: run `init` (new project) or `design` (existing project)
 ```
 
 - [x] **Step 3: Commit**
 
 ```bash
 cd /Users/fkolatau/Documents/claude-code-harness
-git add .claude/skills/intake/capture-requirements.md
+git add .claude/skills/intake/task.md
 git commit -m "feat(skills): add ACTIVE_TASK write step to capture-requirements"
 ```
 
 ---
 
-## Task 1: `init-project` Skill (Intake)
+## Task 1: `init` Skill (Intake)
 
-**File:** Create `.claude/skills/intake/init-project.md`
+**File:** Create `.claude/skills/intake/init.md`
 
 **Reads:** `ACTIVE_TASK.md → ## Requirement`
 **Writes:** nothing to ACTIVE_TASK (scaffold output is file system) — logs scaffold summary to `## Requirement` as addendum
-**Hard block:** if `## Requirement` empty → tell user to run `capture-requirements` first
+**Hard block:** if `## Requirement` empty → tell user to run `task` first
 
 **What it does:** Given structured requirement, scaffold project structure — directory layout, config files, tooling, `ACTIVE_TASK.md` with fixed schema — for any tech stack.
 
@@ -239,7 +239,7 @@ Reads: `ACTIVE_TASK.md` → `## Requirement`
 Writes: project file system + appends scaffold summary to `ACTIVE_TASK.md → ## Requirement`
 
 **Hard block:** If `## Requirement` is empty:
-> "Run `capture-requirements` first. Output required in ACTIVE_TASK.md → ## Requirement."
+> "Run `task` first. Output required in ACTIVE_TASK.md → ## Requirement."
 
 ## Meta-Prompt
 
@@ -264,7 +264,7 @@ Self-inject from `ACTIVE_TASK.md → ## Requirement`: extract `type`, `goal`, `t
 ```javascript
 // Self-inject from ACTIVE_TASK.md
 const requirement = readActiveTask("## Requirement");
-if (!requirement) hardBlock("capture-requirements");
+if (!requirement) hardBlock("task");
 
 // Generate scaffold
 const scaffold = await agent(enrichedMetaPrompt, { schema: SCAFFOLD_SCHEMA });
@@ -276,7 +276,7 @@ appendToActiveTask("## Requirement", `\n### Scaffold\n${scaffold.summary}`);
 
 ## Trigger Points
 
-- After `capture-requirements` outputs structured requirement
+- After `task` outputs structured requirement
 - User says "scaffold", "init", "set up project structure", "create new project"
 - Greenfield project with no existing structure
 
@@ -297,7 +297,7 @@ Appends scaffold summary to `ACTIVE_TASK.md → ## Requirement`:
 - [ ] Produce first-commit checklist
 - [ ] Ask clarifying questions for ambiguous choices
 - [ ] Append scaffold summary to ACTIVE_TASK.md → ## Requirement
-- [ ] Next: run `architecture-design`
+- [ ] Next: run `design`
 
 ## Example
 
@@ -318,7 +318,7 @@ techStack: "Python/FastAPI", constraints: { timeline: "2 weeks" }
 
 ---
 
-*Next: `architecture-design` (Planning phase).*
+*Next: `design` (Planning phase).*
 ```
 
 - [x] **Step 2: Verify structure matches canonical pattern** (Prerequisites, Meta-Prompt, Pattern, Trigger Points, Output, Checklist, Example with hard block shown, footer)
@@ -326,7 +326,7 @@ techStack: "Python/FastAPI", constraints: { timeline: "2 weeks" }
 - [x] **Step 3: Commit**
 
 ```bash
-git add .claude/skills/intake/init-project.md
+git add .claude/skills/intake/init.md
 git commit -m "feat(skills): add init-project intake skill"
 ```
 
@@ -336,20 +336,20 @@ git commit -m "feat(skills): add init-project intake skill"
 
 Follow canonical skill structure for each. Pattern: read prior section → hard block → self-inject → generate → write → suggest next skill.
 
-**Task 2:** `architecture-design.md` — Reads `## Requirement` → Writes `## Design`
-**Task 3:** `decision-grill.md` — Reads `## Design` → Writes `## ADRs`
-**Task 4:** `risk-assessment.md` — Reads `## Design` + `## ADRs` → Writes `## Risks`
-**Task 5:** `code-gen.md` — Reads `## Design` → Writes to filesystem + logs to `## Implementation Log`
+**Task 2:** `design.md` — Reads `## Requirement` → Writes `## Design`
+**Task 3:** `grill.md` — Reads `## Design` → Writes `## ADRs`
+**Task 4:** `risk.md` — Reads `## Design` + `## ADRs` → Writes `## Risks`
+**Task 5:** `code.md` — Reads `## Design` → Writes to filesystem + logs to `## Implementation Log`
 **Task 6:** `tdd.md` — Reads `## Requirement` + `## Implementation Log` → Appends to `## Implementation Log`
 **Task 7:** `refactor.md` — Reads `## Implementation Log` → Appends to `## Implementation Log`
-**Task 8:** `test-design.md` — Reads `## Requirement` + `## Implementation Log` → Writes `## Test Results` (plan section)
-**Task 9:** `coverage-analysis.md` — Reads `## Test Results` → Appends gap analysis to `## Test Results`
-**Task 10:** `verification.md` — Reads `## Requirement` + `## Test Results` → Appends matrix + verdict to `## Test Results`
-**Task 11:** `code-review.md` — Reads `## Test Results` + git diff → Writes `## Review Findings`
-**Task 12:** `security-audit.md` — Reads `## Review Findings` + git diff → Appends to `## Review Findings`
-**Task 13:** `deploy-checklist.md` — Reads `## Review Findings` → Writes `## Deploy Checklist`
-**Task 14:** `post-deploy.md` — Reads `## Deploy Checklist` → Writes `## Post-Deploy`
-**Task 14b:** `close-task.md` — Reads full ACTIVE_TASK.md → Archives to `task-log/`, updates `.claude/context/`, resets ACTIVE_TASK.md. Runs after merge (not tied to deploy).
+**Task 8:** `tests.md` — Reads `## Requirement` + `## Implementation Log` → Writes `## Test Results` (plan section)
+**Task 9:** `coverage.md` — Reads `## Test Results` → Appends gap analysis to `## Test Results`
+**Task 10:** `verify.md` — Reads `## Requirement` + `## Test Results` → Appends matrix + verdict to `## Test Results`
+**Task 11:** `review.md` — Reads `## Test Results` + git diff → Writes `## Review Findings`
+**Task 12:** `audit.md` — Reads `## Review Findings` + git diff → Appends to `## Review Findings`
+**Task 13:** `deploy.md` — Reads `## Review Findings` → Writes `## Deploy Checklist`
+**Task 14:** `ship.md` — Reads `## Deploy Checklist` → Writes `## Post-Deploy`
+**Task 14b:** `close.md` — Reads full ACTIVE_TASK.md → Archives to `task-log/`, updates `.claude/context/`, resets ACTIVE_TASK.md. Runs after merge (not tied to deploy).
 
 Each skill:
 - Follows canonical structure template

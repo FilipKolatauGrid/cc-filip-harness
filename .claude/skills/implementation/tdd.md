@@ -8,10 +8,10 @@ Reads: `ACTIVE_TASK.md` → `## Requirement` and `## Implementation Log`
 Writes: appends test + implementation entries to `ACTIVE_TASK.md → ## Implementation Log`
 
 **Hard block:** If `## Requirement` is empty:
-> "Run `capture-requirements` first. Output required in ACTIVE_TASK.md → ## Requirement."
+> "Run `task` first. Output required in ACTIVE_TASK.md → ## Requirement."
 
 **Hard block:** If `## Implementation Log` is empty:
-> "Run `code-gen` first. Output required in ACTIVE_TASK.md → ## Implementation Log."
+> "Run `code` first. Output required in ACTIVE_TASK.md → ## Implementation Log."
 
 ## Meta-Prompt
 
@@ -34,8 +34,8 @@ Self-inject from `ACTIVE_TASK.md → ## Requirement` (acceptanceCriteria) and `#
 ```javascript
 const requirement = readActiveTask("## Requirement");
 const implLog = readActiveTask("## Implementation Log");
-if (!requirement) hardBlock("capture-requirements");
-if (!implLog) hardBlock("code-gen");
+if (!requirement) hardBlock("task");
+if (!implLog) hardBlock("code");
 
 const criteria = extractAcceptanceCriteria(requirement);
 
@@ -55,7 +55,7 @@ for (const criterion of criteria) {
 
 ## Trigger Points
 
-- After `code-gen` creates initial implementation
+- After `code` creates initial implementation
 - User says "write tests", "test this", "TDD this criterion"
 - Any acceptance criterion lacks a corresponding test
 
@@ -77,7 +77,7 @@ Appends per-criterion entries to `ACTIVE_TASK.md → ## Implementation Log`:
 - [ ] Refactor without breaking tests
 - [ ] Run full test suite — confirm all pass
 - [ ] Append per-criterion log entries to ACTIVE_TASK.md → ## Implementation Log
-- [ ] Next: run `refactor` or `test-design`
+- [ ] Next: run `refactor` or `tests`
 
 ## Example
 
@@ -106,4 +106,4 @@ Coverage: +2% (services/auth.py: 71% → 73%)
 
 ---
 
-*Next: `refactor` or `test-design` (Testing phase).*
+*Next: `refactor` or `tests` (Testing phase).*

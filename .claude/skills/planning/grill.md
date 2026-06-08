@@ -8,7 +8,7 @@ Reads: `ACTIVE_TASK.md` → `## Design`
 Writes: `ACTIVE_TASK.md` → `## ADRs`
 
 **Hard block:** If `## Design` is empty:
-> "Run `architecture-design` first. Output required in ACTIVE_TASK.md → ## Design."
+> "Run `design` first. Output required in ACTIVE_TASK.md → ## Design."
 
 ## Meta-Prompt
 
@@ -31,7 +31,7 @@ Self-inject from `ACTIVE_TASK.md → ## Design`: extract `openQuestions`, `techS
 
 ```javascript
 const design = readActiveTask("## Design");
-if (!design) hardBlock("architecture-design");
+if (!design) hardBlock("design");
 
 const openQuestions = extractOpenQuestions(design);
 
@@ -44,7 +44,7 @@ writeActiveTask("## ADRs", adrs);
 
 ## Trigger Points
 
-- After `architecture-design` flags open questions in ## Design
+- After `design` flags open questions in ## Design
 - User says "what are the tradeoffs?", "help me decide X", "grill me on this design"
 - Before implementation begins on any decision point
 
@@ -63,7 +63,7 @@ Write to `ACTIVE_TASK.md → ## ADRs`:
 - [ ] For each decision: enumerate options, apply grill-me interrogation, recommend + rationale
 - [ ] Record rejected options with reasons
 - [ ] Write ADRs to ACTIVE_TASK.md → ## ADRs
-- [ ] Next: run `risk-assessment`
+- [ ] Next: run `risk`
 
 ## Example
 
@@ -95,4 +95,4 @@ Rejected: refresh token table — adds schema + endpoint complexity not justifie
 
 ---
 
-*Next: `risk-assessment` (Planning phase).*
+*Next: `risk` (Planning phase).*

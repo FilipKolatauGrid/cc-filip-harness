@@ -10,7 +10,7 @@ This is a **routing-table reference doc**, not an auto-runner.
 
 | Step | Skill | Gate |
 |------|-------|------|
-| 1 | `capture-requirements` | Entry point — type=refactor |
+| 1 | `task` | Entry point — type=refactor |
 
 Set `type: refactor` in ## Requirement. Include: target files/modules, smell or reason, coverage baseline, what must NOT change (external API contracts, behavior).
 
@@ -24,8 +24,8 @@ Run coverage analysis BEFORE touching any code. You cannot refactor safely witho
 
 | Step | Skill | Gate |
 |------|-------|------|
-| 2 | `test-design` | ## Requirement populated |
-| 3 | `coverage-analysis` | ## Test Results (plan) populated |
+| 2 | `tests` | ## Requirement populated |
+| 3 | `coverage` | ## Test Results (plan) populated |
 
 **Hard rule:** If coverage is below target → write missing tests first. Do not refactor until baseline is green and coverage meets target.
 
@@ -37,9 +37,9 @@ Run coverage analysis BEFORE touching any code. You cannot refactor safely witho
 
 | Step | Skill | Gate |
 |------|-------|------|
-| 4 | `risk-assessment` | ## Design (existing — read from codebase or context) + ## Test Results |
+| 4 | `risk` | ## Design (existing — read from codebase or context) + ## Test Results |
 
-For refactors, `risk-assessment` reads from `.claude/context/BE_CONTEXT.md` or `FE_CONTEXT.md` as the design input (no `architecture-design` needed unless structure changes dramatically).
+For refactors, `risk` reads from `.claude/context/BE_CONTEXT.md` or `FE_CONTEXT.md` as the design input (no `design` needed unless structure changes dramatically).
 
 Key risks to assess: behavior regression, performance change, API contract breakage, downstream consumer impact.
 
@@ -66,7 +66,7 @@ Key risks to assess: behavior regression, performance change, API contract break
 
 | Step | Skill | Gate |
 |------|-------|------|
-| 6 | `verification` | ## Requirement + ## Test Results |
+| 6 | `verify` | ## Requirement + ## Test Results |
 
 Verify: same acceptance criteria pass as before refactor. Coverage maintained or improved.
 
@@ -78,8 +78,8 @@ Verify: same acceptance criteria pass as before refactor. Coverage maintained or
 
 | Step | Skill | Gate |
 |------|-------|------|
-| 7 | `code-review` | ## Test Results PASS |
-| 8 | `security-audit` | Only if refactor touches auth, input handling, or crypto |
+| 7 | `review` | ## Test Results PASS |
+| 8 | `audit` | Only if refactor touches auth, input handling, or crypto |
 
 **Gate:** ## Review Findings populated. All CRITICAL resolved.
 
@@ -90,9 +90,9 @@ Verify: same acceptance criteria pass as before refactor. Coverage maintained or
 | Step | Skill | Gate |
 |------|-------|------|
 | 9 | *(merge to branch)* | Review approved |
-| 10 | `close-task` | Merged — archives [REFACTOR] task, updates context snapshots, resets ACTIVE_TASK.md |
+| 10 | `close` | Merged — archives [REFACTOR] task, updates context snapshots, resets ACTIVE_TASK.md |
 
-No `deploy-checklist` or `post-deploy` unless refactor touches DB schema or config.
+No `deploy` or `ship` unless refactor touches DB schema or config.
 
 **Task closed:** `task-log/YYYYMMDD-[REFACTOR]-slug.md` written. `.claude/context/` updated. ACTIVE_TASK.md reset.
 
@@ -112,6 +112,6 @@ No `deploy-checklist` or `post-deploy` unless refactor touches DB schema or conf
 ## Decision Points
 
 - **Coverage below target before start:** write tests first — no exceptions
-- **Refactor scope grows:** re-run `capture-requirements` to update scope, re-run `risk-assessment`
-- **No deployment needed:** skip `deploy-checklist` + `post-deploy` entirely — go straight to `close-task` after merge
-- **BE and FE both touched:** update both context snapshots in `close-task`
+- **Refactor scope grows:** re-run `task` to update scope, re-run `risk`
+- **No deployment needed:** skip `deploy` + `ship` entirely — go straight to `close` after merge
+- **BE and FE both touched:** update both context snapshots in `close`
