@@ -92,6 +92,6 @@ This is a **routing-table reference doc**, not an auto-runner. Each phase lists 
 ## Decision Points
 
 - **risk-assessment flags HIGH risk:** pause — address mitigation before implementation
-- **decision-grill produces conflicting ADRs:** re-run `design` with resolved constraints
+- **`/grill` reveals conflicting or unresolvable decisions:** re-run `/design` with resolved constraints
 - **coverage-analysis below target:** write missing tests before `verify`
 - **refactor introduces regression:** re-run full test suite before proceeding to `tests`

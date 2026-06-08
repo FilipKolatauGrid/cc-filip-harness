@@ -83,7 +83,7 @@ This is a **routing-table reference doc**, not an auto-runner.
 
 | Situation | Action |
 |-----------|--------|
-| decision-grill reveals fatal flaw in design | Re-run `design` with resolved constraints |
+| `/grill` reveals fatal flaw in design | Re-run `/design` with resolved constraints |
 | Verification FAIL | Fix blockers → re-run `verify` |
 | Review BLOCKED | Fix findings → re-run `review` |
 | Post-deploy regression | Execute rollback from ## Deploy Checklist |

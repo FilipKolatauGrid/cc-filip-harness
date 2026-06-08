@@ -58,7 +58,7 @@ Harness reads ## Requirement, generates component map + API contracts
 Next: /grill
 
 You: /grill
-Harness stress-tests open decisions → ADR-001, ADR-002
+Interactive: walks full design tree one decision at a time, presents numbered options + recommendation, developer picks → ADR-001, ADR-002, ...
 Next: /risk
 
 ... (follow the chain) ...
@@ -119,7 +119,7 @@ CLAUDE.md             session init instructions
 ## Meta / DX
 
 - [caveman](https://github.com/juliusbrussee/caveman) — token-efficient output (~75% reduction). Install once.
-- [grill-me](https://github.com/mattpocock/skills) — invoked by `/grill` for ADR stress-testing
+- [grill-me](https://github.com/mattpocock/skills) — inspired `/grill`'s interrogation pattern (full design tree, one decision at a time, codebase-first resolution)
 
 ## Status
 
