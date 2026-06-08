@@ -79,22 +79,74 @@ pytest + pytest-click: existing test setup
 
 ### `/grill`
 
-**ACTIVE_TASK.md → ## ADRs:**
+**Interactive session — grill presents one decision at a time, developer picks by number:**
+
+```
+Decision 1/2: CSV Column Order
+
+Columns in export could match DB query order or be sorted alphabetically.
+CLI users often pipe output to other tools — column order stability matters.
+
+Options:
+  1. DB query order — columns follow the query result set
+     Pros: stable, predictable for scripting and piping
+     Cons: order changes if query changes (breaking for downstream scripts)
+
+  2. Alphabetical — columns sorted A→Z
+     Pros: readable for humans inspecting the file
+     Cons: unpredictable for scripts; breaks if column names change
+
+★ Recommendation: Option 1 — CLI tool implies scripting use; stable order is safer.
+
+Reply with the option number, or describe a custom choice.
+```
+
+Developer: `1`
+
+```
+Recorded: DB query order. Column order is tied to the query — adding/renaming columns is a breaking change for downstream scripts.
+
+Decision 2/2: Output Encoding
+
+CSV encoding choice affects cross-environment compatibility.
+Pipeline data is internal; no locale requirements stated.
+
+Options:
+  1. UTF-8 always — fixed encoding regardless of system locale
+     Pros: portable, standard for data interchange, no surprises across environments
+     Cons: Windows Excel may prompt on open (minor UX issue)
+
+  2. Locale-aware — honour system locale setting
+     Pros: Excel on Windows opens without prompt
+     Cons: silent corruption when files cross environments with different locales
+
+★ Recommendation: Option 1 — internal pipeline tool; portability beats Excel UX.
+
+Reply with the option number, or describe a custom choice.
+```
+
+Developer: `1`
+
+```
+Recorded: UTF-8 always. Document the Excel encoding prompt as a known limitation for Windows users.
+```
+
+**ACTIVE_TASK.md → ## ADRs** (written after all choices collected):
 ```
 ### ADR-001: CSV Column Order
 Context: Columns could follow DB query order (predictable for scripting) or alphabetical (readable for humans).
 Options: DB query order, alphabetical
 Decision: DB query order
-Rationale: CLI users pipe output to other tools; stable, predictable order is more scriptable. Alphabetical helps one-time readers but breaks existing scripts if column set changes.
-Consequences: Column order tied to query — document this. Adding columns is a breaking change.
+Rationale: Developer chose option 1. CLI users pipe output to other tools; stable, predictable order is more scriptable.
+Consequences: Column order tied to query — adding/renaming columns is a breaking change for downstream scripts.
 Rejected: alphabetical — optimises for reading, not scripting.
 
 ### ADR-002: Output Encoding
 Context: CSV encoding could be UTF-8 always or locale-aware.
 Options: UTF-8 always, locale-aware
 Decision: UTF-8 always
-Rationale: Pipeline data is internal; UTF-8 is the standard for data interchange. Locale encoding causes silent corruption when files cross environments.
-Consequences: Windows users opening in Excel may see encoding prompt — acceptable for CLI tool.
+Rationale: Developer chose option 1. Internal pipeline data; portability across environments takes priority.
+Consequences: Windows users opening in Excel may see encoding prompt — document as known limitation.
 Rejected: locale-aware — unpredictable across environments.
 ```
 

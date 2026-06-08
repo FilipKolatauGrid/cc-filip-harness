@@ -79,21 +79,77 @@ In-memory Map: acceptable for single-node (→ /grill)
 
 ### `/grill`
 
-**ACTIVE_TASK.md → ## ADRs:**
+**Interactive session — one decision at a time, developer picks by number:**
+
+```
+Decision 1/2: Throttler Implementation
+
+NestJS ships @nestjs/throttler as a first-party module. Requirements are per-IP,
+global, configurable window — a standard throttling shape.
+
+Options:
+  1. @nestjs/throttler — NestJS built-in throttler module
+     Pros: zero implementation cost, maintained by NestJS team, fits requirements exactly
+     Cons: tied to the module's API and release cadence
+
+  2. Custom ThrottlerService — hand-rolled in-memory guard
+     Pros: full control over headers, whitelist logic, and sliding window algorithm
+     Cons: maintenance burden, more code, no benefit for stated requirements
+
+  3. Third-party library (e.g. express-rate-limit) — framework-agnostic
+     Pros: widely used, flexible
+     Cons: NestJS integration requires extra wiring; adds external dependency
+
+★ Recommendation: Option 1 — requirements fit the built-in exactly; custom adds cost with no gain.
+
+Reply with the option number, or describe a custom choice.
+```
+
+Developer: `1`
+
+```
+Recorded: @nestjs/throttler. Tied to the module's API — pin the version and test on upgrades.
+
+Decision 2/2: Rate Limit Storage Backend
+
+Rate limit counters need somewhere to live. The requirement explicitly scopes to
+single-node ("distributed rate limiting across nodes" is out of scope).
+
+Options:
+  1. In-memory (Map) — counters stored in process memory
+     Pros: zero infra, simple, fast
+     Cons: resets on restart, doesn't share state across instances
+
+  2. Redis — distributed store
+     Pros: survives restarts, works across multiple instances
+     Cons: adds infra dependency, out of scope per requirements
+
+★ Recommendation: Option 1 — single-node is explicit in scope; Redis cost isn't justified.
+
+Reply with the option number, or describe a custom choice.
+```
+
+Developer: `1`
+
+```
+Recorded: in-memory. Document as known limitation: rate limit resets on restart and doesn't work across instances.
+```
+
+**ACTIVE_TASK.md → ## ADRs** (written after all choices collected):
 ```
 ### ADR-001: @nestjs/throttler vs. Custom Implementation
 Context: NestJS ships @nestjs/throttler. Custom gives full control over headers and whitelist.
-Options: @nestjs/throttler, custom ThrottlerService
+Options: @nestjs/throttler, custom ThrottlerService, third-party library
 Decision: @nestjs/throttler
-Rationale: Requirements fit built-in exactly (per-IP, global, configurable window). Custom adds maintenance burden with no benefit for stated requirements. Whitelist and custom headers configurable via ThrottlerGuard extension.
-Consequences: Tied to @nestjs/throttler API — acceptable for this scope.
-Rejected: custom — over-engineering for requirements that fit the built-in.
+Rationale: Developer chose option 1. Requirements fit built-in exactly; custom adds maintenance burden with no benefit.
+Consequences: Tied to @nestjs/throttler API — pin version, test on upgrades.
+Rejected: custom — over-engineering for requirements that fit the built-in. Third-party — adds external dependency with no advantage over built-in.
 
 ### ADR-002: In-Memory vs. Redis Storage
 Context: In-memory is simple but doesn't share state across instances. Redis is distributed but adds infra dependency.
 Options: in-memory (Map), Redis
 Decision: in-memory
-Rationale: Single-node per requirements scope. Out-of-scope: "distributed rate limiting across nodes". In-memory avoids Redis infra cost for stated constraints.
+Rationale: Developer chose option 1. Single-node explicit in scope; "distributed rate limiting" is out of scope per requirements.
 Consequences: Rate limit resets on restart; doesn't work across multiple instances — documented as known limitation.
 Rejected: Redis — out of scope, adds infra dependency not justified by requirements.
 ```

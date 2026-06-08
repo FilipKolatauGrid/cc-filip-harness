@@ -1,6 +1,6 @@
 # Decision Grill
 
-Stress-test open design decisions from ## Design by producing Architecture Decision Records (ADRs) for each, using relentless one-at-a-time interrogation.
+Interactive ADR session: one decision at a time. Present numbered options + recommendation, wait for developer to pick, then move to the next. Never auto-decide.
 
 ## Prerequisites
 
@@ -8,91 +8,126 @@ Reads: `ACTIVE_TASK.md` → `## Design`
 Writes: `ACTIVE_TASK.md` → `## ADRs`
 
 **Hard block:** If `## Design` is empty:
-> "Run `design` first. Output required in ACTIVE_TASK.md → ## Design."
+> "Run `/design` first. Output required in ACTIVE_TASK.md → ## Design."
 
-## Meta-Prompt
+## Core Rule
 
-Self-inject from `ACTIVE_TASK.md → ## Design`: extract `openQuestions`, `techStack`, `components`, `constraints`.
+**You are a facilitator, not a decision-maker.** For every open question, you propose options and a recommendation — the developer decides. Never write an ADR until the developer has confirmed their choice.
 
-**Analyze:**
-- What decisions from ## Design were flagged as open questions?
-- What are the alternatives for each decision?
-- What constraints force or eliminate options?
-- What are the consequences of each choice (reversibility, performance, complexity)?
+## Session Flow
 
-**Generate:**
-1. **ADR per open question** — decision title, context, options considered, chosen option, rationale, consequences
-2. **Dependency order** — resolve foundational decisions before dependent ones
-3. **Rejected options log** — why each alternative was ruled out
-
-**Invoke grill-me:** For each open question, apply the grill-me pattern — propose your recommended answer with rationale, then interrogate your own reasoning. One decision at a time.
-
-## Pattern
-
-```javascript
-const design = readActiveTask("## Design");
-if (!design) hardBlock("design");
-
-const openQuestions = extractOpenQuestions(design);
-
-// For each decision: grill-me pattern — recommend + interrogate
-const adrs = await agent(enrichedMetaPrompt, { schema: ADR_SCHEMA });
-// Output: [{ id, title, context, options, decision, rationale, consequences }]
-
-writeActiveTask("## ADRs", adrs);
+```
+1. Read ACTIVE_TASK.md → ## Design
+2. Extract all open questions
+3. Order by dependency (foundational decisions first)
+4. For each decision:
+   a. Present the question with numbered options + recommendation (see format below)
+   b. STOP. Wait for developer response.
+   c. Developer replies with a number (or describes a custom choice)
+   d. Confirm the choice, record the ADR internally
+   e. Move to the next decision
+5. After ALL decisions collected → write ## ADRs to ACTIVE_TASK.md in one pass
+6. Tell developer: "Next: run /risk"
 ```
 
-## Trigger Points
+**One question per message. Never batch multiple decisions in one output.**
 
-- After `design` flags open questions in ## Design
-- User says "what are the tradeoffs?", "help me decide X", "grill me on this design"
-- Before implementation begins on any decision point
+## Question Format
 
-## Output
+Present each decision exactly like this:
 
-Write to `ACTIVE_TASK.md → ## ADRs`:
-- One ADR per decision (numbered: ADR-001, ADR-002, …)
-- Each ADR: title, context, options, decision, rationale, consequences
-- Rejected options with reasons
+```
+**Decision [N/total]: [Decision Title]**
+
+[1-2 sentences of context — why this decision matters, what constraints apply]
+
+Options:
+  1. [Option name] — [one-line description]
+     Pros: [key strengths]
+     Cons: [key weaknesses]
+
+  2. [Option name] — [one-line description]
+     Pros: [key strengths]
+     Cons: [key weaknesses]
+
+  3. [Option name] — [one-line description] (if applicable)
+     Pros: [key strengths]
+     Cons: [key weaknesses]
+
+★ Recommendation: Option [N] — [reason in one sentence, tied to constraints/timeline/stack]
+
+Reply with the option number, or describe a custom choice.
+```
+
+## Rules for Options
+
+- 2–4 options max per decision. Don't pad with non-viable options.
+- Order options from most to least conventional/safe.
+- Recommendation must reference a constraint from ## Design or ## Requirement (timeline, team size, existing stack, reversibility). Never recommend based on general preference alone.
+- If a constraint makes one option clearly forced, say so: "Option 2 is forced — your existing stack uses X."
+
+## After Developer Picks
+
+Acknowledge with one line: `"Recorded: [Option name]. [One-sentence consequence note if non-obvious.]"`
+
+Then immediately present the next decision. No commentary, no summary, no re-explanation of what was just decided.
+
+## ADR Write Format
+
+After all decisions are collected, write to `ACTIVE_TASK.md → ## ADRs`:
+
+```
+### ADR-[NNN]: [Decision Title]
+Context: [why this decision was needed]
+Options: [comma-separated list]
+Decision: [chosen option]
+Rationale: [developer's choice + constraint that drove it]
+Consequences: [what this means going forward]
+Rejected: [other options] — [why each was not chosen]
+```
 
 ## Checklist
 
 - [ ] Read ACTIVE_TASK.md → ## Design; hard block if empty
-- [ ] Extract open questions from ## Design
-- [ ] Order decisions by dependency (foundational first)
-- [ ] For each decision: enumerate options, apply grill-me interrogation, recommend + rationale
-- [ ] Record rejected options with reasons
-- [ ] Write ADRs to ACTIVE_TASK.md → ## ADRs
-- [ ] Next: run `risk`
+- [ ] Extract open questions; order by dependency
+- [ ] For each decision: present numbered options + recommendation, STOP and wait
+- [ ] Record developer's choice after each answer
+- [ ] After all choices collected: write ADRs to ACTIVE_TASK.md → ## ADRs
+- [ ] Next: run `/risk`
 
-## Example
+## Example Exchange
 
-**Input (from ACTIVE_TASK.md → ## Design):**
+**Grill presents:**
 ```
-### Open Questions (→ decision-grill)
-- Password hashing: bcrypt vs. argon2?
-- Token storage: stateless JWT vs. refresh token DB table?
+Decision 1/2: Password Hashing Algorithm
+
+Need to hash passwords at signup and verify at login. Stack is Python (FastAPI).
+No existing hashing library in use.
+
+Options:
+  1. bcrypt — industry standard, widely supported
+     Pros: battle-tested, broad library support (passlib)
+     Cons: not OWASP's top pick for new systems, CPU-bound only
+
+  2. argon2id — OWASP recommended for new systems
+     Pros: memory-hard (GPU-resistant), OWASP top pick
+     Cons: slightly higher memory per login, less familiar
+
+★ Recommendation: Option 2 — greenfield project, no migration cost, OWASP alignment strengthens security posture.
+
+Reply with the option number, or describe a custom choice.
 ```
 
-**Output (written to ACTIVE_TASK.md → ## ADRs):**
-```
-### ADR-001: Password Hashing Algorithm
-Context: Need password hashing for user auth. bcrypt is standard; argon2 is newer, OWASP-recommended.
-Options: bcrypt, argon2id
-Decision: argon2id
-Rationale: OWASP recommends argon2id for new systems; memory-hard = more resistant to GPU attacks; library support in Python via `argon2-cffi` is stable.
-Consequences: Slightly higher memory use per login; no migration needed (greenfield).
-Rejected: bcrypt — adequate but not OWASP top pick for new systems.
+**Developer:** `2`
 
-### ADR-002: Token Storage Strategy
-Context: JWT can be stateless (no DB) or use refresh tokens stored in DB (revocable).
-Options: stateless JWT (short TTL), refresh token table
-Decision: stateless JWT (15min TTL)
-Rationale: 2-week timeline; no revocation requirement in acceptance criteria; stateless = simpler ops.
-Consequences: Tokens can't be revoked before TTL. Acceptable given no revocation requirement.
-Rejected: refresh token table — adds schema + endpoint complexity not justified by requirements.
+**Grill responds:**
+```
+Recorded: argon2id. Higher memory use per login (~64MB default) — acceptable at your scale.
+
+Decision 2/2: Token Storage Strategy
+...
 ```
 
 ---
 
-*Next: `risk` (Planning phase).*
+*After all decisions: write ADRs, then suggest `/risk`.*
