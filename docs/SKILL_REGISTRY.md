@@ -2,28 +2,30 @@
 
 Single-page lookup: what skill handles what, in what order, reading and writing which ACTIVE_TASK.md sections.
 
+**Canonical spec:** `.claude/commands/` — each file is the full, authoritative definition. There is no separate `.claude/skills/` directory; commands serve both invocation paths.
+
 ---
 
 ## Skills
 
 | Skill | Phase | File | Trigger | Reads | Writes |
 |-------|-------|------|---------|-------|--------|
-| `task` | Intake | `.claude/skills/intake/task.md` | Start any task | — | `## Requirement` |
-| `init` | Intake | `.claude/skills/intake/init.md` | Greenfield scaffold | `## Requirement` | `## Requirement` (addendum) |
-| `design` | Planning | `.claude/skills/planning/design.md` | Design system | `## Requirement` | `## Design` |
-| `grill` | Planning | `.claude/skills/planning/grill.md` | Stress-test decisions | `## Design` | `## ADRs` |
-| `risk` | Planning | `.claude/skills/planning/risk.md` | Identify risks | `## Design` + `## ADRs` | `## Risks` |
-| `code` | Implementation | `.claude/skills/implementation/code.md` | Generate code | `## Design` | filesystem + `## Implementation Log` |
-| `tdd` | Implementation | `.claude/skills/implementation/tdd.md` | Test-drive criteria | `## Requirement` + `## Implementation Log` | `## Implementation Log` (append) |
-| `refactor` | Implementation | `.claude/skills/implementation/refactor.md` | Structural cleanup | `## Implementation Log` | `## Implementation Log` (append) |
-| `tests` | Testing | `.claude/skills/testing/tests.md` | Plan test scenarios | `## Requirement` + `## Implementation Log` | `## Test Results` |
-| `coverage` | Testing | `.claude/skills/testing/coverage.md` | Find coverage gaps | `## Test Results` | `## Test Results` (append) |
-| `verify` | Testing | `.claude/skills/testing/verify.md` | Confirm all criteria | `## Requirement` + `## Test Results` | `## Test Results` (append) |
-| `review` | Review | `.claude/skills/review/review.md` | Review diff | `## Test Results` + git diff | `## Review Findings` |
-| `audit` | Review | `.claude/skills/review/audit.md` | OWASP audit | `## Review Findings` + git diff | `## Review Findings` (append) |
-| `deploy` | Integration | `.claude/skills/integration/deploy.md` | Pre-deploy gate | `## Review Findings` | `## Deploy Checklist` |
-| `ship` | Integration | `.claude/skills/integration/ship.md` | Validate deploy | `## Deploy Checklist` | `## Post-Deploy` |
-| `close` | Integration | `.claude/skills/integration/close.md` | After merge | Full `ACTIVE_TASK.md` | `task-log/` + `.claude/context/` + ACTIVE_TASK.md reset |
+| `task` | Intake | `.claude/commands/task.md` | Start any task | — | `## Requirement` |
+| `init` | Intake | `.claude/commands/init.md` | Greenfield scaffold | `## Requirement` | `## Requirement` (addendum) |
+| `design` | Planning | `.claude/commands/design.md` | Design system | `## Requirement` | `## Design` |
+| `grill` | Planning | `.claude/commands/grill.md` | Stress-test decisions | `## Design` | `## ADRs` |
+| `risk` | Planning | `.claude/commands/risk.md` | Identify risks | `## Design` + `## ADRs` | `## Risks` |
+| `code` | Implementation | `.claude/commands/code.md` | Generate code | `## Design` | filesystem + `## Implementation Log` |
+| `tdd` | Implementation | `.claude/commands/tdd.md` | Test-drive criteria | `## Requirement` + `## Implementation Log` | `## Implementation Log` (append) |
+| `refactor` | Implementation | `.claude/commands/refactor.md` | Structural cleanup | `## Implementation Log` | `## Implementation Log` (append) |
+| `tests` | Testing | `.claude/commands/tests.md` | Plan test scenarios | `## Requirement` + `## Implementation Log` | `## Test Results` |
+| `coverage` | Testing | `.claude/commands/coverage.md` | Find coverage gaps | `## Test Results` | `## Test Results` (append) |
+| `verify` | Testing | `.claude/commands/verify.md` | Confirm all criteria | `## Requirement` + `## Test Results` | `## Test Results` (append) |
+| `review` | Review | `.claude/commands/review.md` | Review diff | `## Test Results` + git diff | `## Review Findings` |
+| `audit` | Review | `.claude/commands/audit.md` | OWASP audit | `## Review Findings` + git diff | `## Review Findings` (append) |
+| `deploy` | Integration | `.claude/commands/deploy.md` | Pre-deploy gate | `## Review Findings` | `## Deploy Checklist` |
+| `ship` | Integration | `.claude/commands/ship.md` | Validate deploy | `## Deploy Checklist` | `## Post-Deploy` |
+| `close` | Integration | `.claude/commands/close.md` | After merge | Full `ACTIVE_TASK.md` | `task-log/` + `.claude/context/` + ACTIVE_TASK.md reset |
 
 ---
 

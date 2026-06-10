@@ -1,5 +1,7 @@
 # Meta-Prompting Pattern
 
+> **Note:** Code blocks in this document are **conceptual pseudocode** — they illustrate the logical pattern each skill follows. There is no JavaScript runtime executing these patterns. The harness is markdown-based; skills are instructions read by the model, not compiled code.
+
 Core pattern: **Generate prompts from context** instead of writing them by hand.
 
 ## Example: Test Design Skill
