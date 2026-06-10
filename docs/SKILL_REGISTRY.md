@@ -40,6 +40,19 @@ Single-page lookup: what skill handles what, in what order, reading and writing 
 
 ---
 
+## Agents
+
+Spawned by skills — not invoked directly. Each runs as a sub-agent and injects output back into the calling skill.
+
+| Agent | Spawned By | Model | Purpose |
+|-------|-----------|-------|---------|
+| `sdlc-investigator` | `design`, `code`, `refactor` | haiku | Read-only file/symbol locator — returns FILES + SYMBOLS table, never suggests fixes |
+| `sdlc-reviewer` | `review` | sonnet | Diff review anchored to acceptance criteria + design contracts — severity-tagged findings |
+| `sdlc-secops` | `review`, `audit`, `deploy` | haiku | Fast secrets/vuln/compliance pattern scan — CLEAR / FINDINGS_REQUIRE_FIX / CRITICAL_BLOCK |
+| `sdlc-context-builder` | `close` | sonnet | Generates/updates `.claude/context/FE_CONTEXT.md` and `BE_CONTEXT.md` from changed files |
+
+---
+
 ## ACTIVE_TASK.md Section Order
 
 Skills write sections in this order. Each skill hard-blocks if its required prior section is missing.

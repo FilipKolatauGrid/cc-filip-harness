@@ -143,14 +143,13 @@ const prompt = evaluateTemplate(metaPrompt, {
 Each skill follows this structure:
 
 ```javascript
-// .claude/skills/phase/skill-name.md
+// .claude/commands/skill-name.md
 
 ---
 name: skill-name
 description: What this skill does
 metadata:
   type: skill
-  phase: [intake|planning|implementation|testing|review|integration]
   triggers: ["when user says X", "when condition Y"]
 ---
 

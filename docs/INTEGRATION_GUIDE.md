@@ -17,7 +17,7 @@ How to add the SDLC harness to any project — greenfield or existing.
 # 1. Clone the harness
 git clone https://github.com/your-org/claude-code-harness .claude-harness
 
-# 2. Copy .claude/ into your new project (includes commands/, skills/, workflows/)
+# 2. Copy .claude/ into your new project (includes commands/, agents/, workflows/)
 cp -r .claude-harness/.claude your-project/.claude
 cp .claude-harness/CLAUDE.md your-project/CLAUDE.md
 cp .claude-harness/ACTIVE_TASK.md your-project/ACTIVE_TASK.md
@@ -38,7 +38,7 @@ Then follow the `/init` scaffold output to create your project structure.
 ## Option B: Existing Project
 
 ```bash
-# 1. Copy .claude/ skills and workflows into your project root
+# 1. Copy .claude/ agents and workflows into your project root
 cp -r .claude-harness/.claude your-project/.claude
 
 # 2. Merge or create CLAUDE.md
@@ -81,8 +81,8 @@ The harness requires these files at your project root:
 
 ```
 .claude/
-  commands/       ← 16 slash command wrappers (/task /design /grill /risk /code /tdd /refactor /tests /coverage /verify /review /audit /deploy /ship /close /init)
-  skills/         ← 16 skill instruction files (called by commands)
+  commands/       ← 16 slash commands (/task /init /design /grill /risk /code /tdd /refactor /tests /coverage /verify /review /audit /deploy /ship /close)
+  agents/         ← sdlc subagents (spawned by skills, not invoked directly)
   workflows/      ← 4 workflow files
   context/        ← empty dir (populated by /close)
 ACTIVE_TASK.md    ← empty schema (reset after each /close)
@@ -165,7 +165,7 @@ ACTIVE_TASK.md
 # Commit these (shared team artifacts):
 # task-log/
 # .claude/context/
-# .claude/skills/
+# .claude/agents/
 # .claude/workflows/
 ```
 
@@ -179,7 +179,7 @@ When the harness has new skills or fixes:
 # Pull latest skill/command files
 cd .claude-harness && git pull
 cp -r .claude-harness/.claude/commands your-project/.claude/commands
-cp -r .claude-harness/.claude/skills your-project/.claude/skills
+cp -r .claude-harness/.claude/agents your-project/.claude/agents
 cp -r .claude-harness/.claude/workflows your-project/.claude/workflows
 ```
 
