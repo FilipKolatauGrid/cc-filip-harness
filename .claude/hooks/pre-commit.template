@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# Harness git pre-commit hook: block commits when ACTIVE_TASK is in an early phase.
+# Copy to .git/hooks/pre-commit and chmod +x to install.
+# Override intentionally with: git commit --no-verify
+
+set -euo pipefail
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+ACTIVE_TASK="${REPO_ROOT}/ACTIVE_TASK.md"
+
+if [[ ! -f "$ACTIVE_TASK" ]]; then
+  exit 0
+fi
+
+# If ## Requirement is empty → no active task, allow commit
+req_body=$(awk '/^## Requirement/{found=1; next} found && /^## /{exit} found{print}' "$ACTIVE_TASK" \
+  | grep -v "^<!--" | grep -v "^$" | head -1)
+
+if [[ -z "$req_body" ]]; then
+  exit 0
+fi
+
+# Find last Observation block phase
+last_phase=$(grep "^- phase:" "$ACTIVE_TASK" | tail -1 | sed 's/- phase: *//' | tr -d '\r')
+
+if [[ -z "$last_phase" ]]; then
+  # Active task but no Observation blocks — legacy or very early state, warn but allow
+  echo "HARNESS WARNING: Active task in ACTIVE_TASK.md has no Observation blocks. Consider running /task → /design before committing."
+  exit 0
+fi
+
+# Phases that are too early to commit implementation
+case "$last_phase" in
+  intake/task|planning/design|planning/grill|planning/risk)
+    echo ""
+    echo "HARNESS GATE: Commit blocked."
+    echo "  Active task phase: ${last_phase}"
+    echo "  Implementation not yet verified. Complete the planning phase first:"
+    echo "  /design → /grill → /risk → /code → /tdd → /verify"
+    echo ""
+    echo "  Override (use intentionally): git commit --no-verify"
+    exit 1
+    ;;
+  implementation/code)
+    # Code written but no tests yet
+    echo ""
+    echo "HARNESS GATE: Commit blocked."
+    echo "  Active task phase: implementation/code — no test evidence yet."
+    echo "  Run /tdd → /tests → /coverage → /verify before committing."
+    echo ""
+    echo "  Override (use intentionally): git commit --no-verify"
+    exit 1
+    ;;
+  implementation/tdd|implementation/refactor|testing/tests|testing/coverage)
+    # Tests exist but verify not run — warn but allow (test files are worth committing)
+    echo "HARNESS WARNING: Active task not yet verified (phase: ${last_phase})."
+    echo "  Run /verify before submitting a PR. Committing test progress is allowed."
+    exit 0
+    ;;
+  testing/verify)
+    # Check verdict
+    last_verdict=$(grep "^- verdict:" "$ACTIVE_TASK" | tail -1 | sed 's/- verdict: *//' | tr -d '\r')
+    if [[ "$last_verdict" == "FAIL" ]]; then
+      echo ""
+      echo "HARNESS GATE: Commit blocked."
+      echo "  /verify verdict: FAIL — blockers unresolved."
+      echo "  Fix failing tests/coverage before committing. See ## Test Results in ACTIVE_TASK.md."
+      echo ""
+      echo "  Override (use intentionally): git commit --no-verify"
+      exit 1
+    fi
+    exit 0
+    ;;
+  *)
+    # review and later phases: allow
+    exit 0
+    ;;
+esac

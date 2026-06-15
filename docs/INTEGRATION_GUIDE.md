@@ -17,7 +17,7 @@ How to add the SDLC harness to any project — greenfield or existing.
 # 1. Clone the harness
 git clone https://github.com/your-org/claude-code-harness .claude-harness
 
-# 2. Copy .claude/ into your new project (includes commands/, agents/, workflows/)
+# 2. Copy .claude/ into your new project (includes skills/, agents/, workflows/, hooks/)
 cp -r .claude-harness/.claude your-project/.claude
 cp .claude-harness/CLAUDE.md your-project/CLAUDE.md
 cp .claude-harness/ACTIVE_TASK.md your-project/ACTIVE_TASK.md
@@ -67,7 +67,7 @@ If your project already has a `CLAUDE.md`, append this block:
 Session init: read `docs/SKILL_REGISTRY.md`, then `ACTIVE_TASK.md`.
 Load `.claude/context/BE_CONTEXT.md` and/or `FE_CONTEXT.md` if they exist.
 
-Commands: /task /init /design /grill /risk /code /tdd /refactor /tests /coverage /verify /review /audit /deploy /ship /close
+Skills: /task /init /design /grill /risk /code /tdd /refactor /tests /coverage /verify /review /audit /deploy /ship /close
 
 State: ACTIVE_TASK.md (one section per phase, hard-gated)
 Archive: task-log/YYYYMMDD-[TYPE]-slug.md after each /close
@@ -81,14 +81,75 @@ The harness requires these files at your project root:
 
 ```
 .claude/
-  commands/       ← 16 slash commands (/task /init /design /grill /risk /code /tdd /refactor /tests /coverage /verify /review /audit /deploy /ship /close)
+  skills/         ← 16 skill dirs (each with SKILL.md — /task /init /design /grill /risk /code /tdd /refactor /tests /coverage /verify /review /audit /deploy /ship /close)
   agents/         ← sdlc subagents (spawned by skills, not invoked directly)
   workflows/      ← 4 workflow files
+  hooks/          ← 5 automation hooks (wired in settings.local.json)
   context/        ← empty dir (populated by /close)
 ACTIVE_TASK.md    ← empty schema (reset after each /close)
 CLAUDE.md         ← session init instructions
 task-log/         ← empty dir (populated by /close)
 ```
+
+---
+
+## Hooks Setup
+
+The harness ships with 5 hooks in `.claude/hooks/`. The Claude Code hooks (1–4) are pre-wired in `.claude/settings.local.json`. The git hook (5) requires a one-time manual install per clone.
+
+### Claude Code hooks (auto-active after copy)
+
+| Hook | Event | Effect |
+|------|-------|--------|
+| `load-context.sh` | `SessionStart` | Injects harness phase/verdict/next-skill into context window |
+| `phase-gate.sh` | `PreToolUse(Bash)` | Blocks out-of-order skill invocations (exit 2) |
+| `secops-scan.sh` | `PostToolUse(Write\|Edit)` | Async secret/vuln scan on source files during implementation |
+| `verify-fail-capture.sh` | `UserPromptSubmit` | Injects prior `/verify` FAIL blockers on retry |
+
+These fire automatically when Claude Code loads `.claude/settings.local.json` from the project root — no extra setup.
+
+### Git pre-commit hook (manual install)
+
+```bash
+cp .claude/hooks/pre-commit.template .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
+```
+
+Blocks `git commit` when ACTIVE_TASK.md is in an early phase with no test evidence. Override when needed: `git commit --no-verify`.
+
+### Disabling hooks
+
+To disable all Claude Code hooks temporarily:
+```json
+// .claude/settings.local.json
+{ "disableAllHooks": true }
+```
+
+To disable a single hook, remove its entry from the `hooks` section in `.claude/settings.local.json`.
+
+### CI/CD post-merge auto-close (reference pattern)
+
+The harness is local-first, but teams can wire `/close` into CI. Example GitHub Actions pattern:
+
+```yaml
+# .github/workflows/harness-close.yml
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+jobs:
+  close-task:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run harness close
+        run: claude -p "/close" --output-format stream-json
+        # Requires ANTHROPIC_API_KEY secret + claude CLI installed
+```
+
+This keeps `.claude/context/` snapshots current across the team without manual `/close` after every merge.
 
 ---
 
@@ -176,11 +237,14 @@ ACTIVE_TASK.md
 When the harness has new skills or fixes:
 
 ```bash
-# Pull latest skill/command files
+# Pull latest
 cd .claude-harness && git pull
-cp -r .claude-harness/.claude/commands your-project/.claude/commands
-cp -r .claude-harness/.claude/agents your-project/.claude/agents
+cp -r .claude-harness/.claude/skills    your-project/.claude/skills
+cp -r .claude-harness/.claude/agents    your-project/.claude/agents
 cp -r .claude-harness/.claude/workflows your-project/.claude/workflows
+cp -r .claude-harness/.claude/hooks     your-project/.claude/hooks
+# Re-install git hook after hooks update
+cp your-project/.claude/hooks/pre-commit.template your-project/.git/hooks/pre-commit
 ```
 
 Your `task-log/`, `.claude/context/`, and `ACTIVE_TASK.md` are project-local — they never get overwritten by harness updates.
@@ -195,8 +259,8 @@ Your `task-log/`, `.claude/context/`, and `ACTIVE_TASK.md` are project-local —
 **"Hard block: ## Design is empty"**
 → Run `/design`. Skills gate on prior phase output.
 
-**Commands not found (`/task`, `/design`, etc.)**
-→ Ensure `.claude/commands/` exists at your project root with all 16 `.md` files. Claude Code discovers slash commands from `.claude/commands/` relative to the working directory. If missing, copy from the harness repo.
+**Skills not found (`/task`, `/design`, etc.)**
+→ Ensure `.claude/skills/` exists at your project root with all 16 skill directories. Claude Code discovers skills from `.claude/skills/<name>/SKILL.md`. If missing, copy from the harness repo.
 
 **ACTIVE_TASK.md grew too large**
 → Run `/close` to archive and reset. Each task should have its own cycle.

@@ -221,6 +221,146 @@ Each principle now has concrete harness mechanics, not just documentation:
 
 ---
 
+---
+
+# Hooks Integration
+
+**Date:** 2026-06-15
+**Scope:** 5 Claude Code hooks added — deterministic phase gating, session context injection, inline secops scanning, verify-fail capture, git pre-commit interlock
+
+---
+
+## What Changed
+
+### New: `.claude/hooks/` directory (5 files)
+
+All hooks are shell scripts, executable, wired into `.claude/settings.local.json`.
+
+#### `load-context.sh` — SessionStart context injection
+
+Fires on every session start (new + resume). Parses ACTIVE_TASK.md, finds last Observation block, injects a one-line harness state summary into the context window via `additionalContext`:
+
+```
+HARNESS STATE: phase=testing/verify | done-signal=test-run-output | next=/review | verdict=PASS (external-evidence)
+```
+
+Prevents cold re-read of full ACTIVE_TASK.md each session. Clean state emits `"no active task. Run /task to start."` instead.
+
+#### `phase-gate.sh` — PreToolUse Bash gate
+
+Fires before every Bash tool call. Detects skill invocations (`/code`, `/verify`, `/review`, `/audit`, `/deploy`, `/ship`, `/close`) and checks ACTIVE_TASK.md Observation blocks against required prior-phase gates. Blocks with exit 2 if gate not satisfied — error message fed back to Claude:
+
+```
+PHASE GATE BLOCKED: /review requires verify PASS verdict (external-evidence).
+Current state: ## Test Results has no PASS Observation. Run /verify first.
+```
+
+Gate table:
+
+| Skill | Required prior evidence |
+|-------|------------------------|
+| `/code` | `## Design` Observation present |
+| `/verify` | `## Test Results` Observation with `done-signal: coverage-report` |
+| `/review` | verify Observation with `verdict: PASS` + `verdict-source: external-evidence` |
+| `/audit` | `## Review Findings` Observation present |
+| `/deploy` | No unresolved CRITICAL in `## Review Findings` |
+| `/ship` | `## Deploy Checklist` Observation present |
+| `/close` | `## Requirement` + `## Review Findings` both populated |
+
+This is the hook-layer enforcement of the same gates already embedded in each SKILL.md — double fence.
+
+#### `secops-scan.sh` — PostToolUse Write/Edit scanner
+
+Fires asynchronously after every Write or Edit tool call on source files. Skips `.claude/`, `task-log/`, `docs/`, `examples/`, and all `*.md`/`*.json`/`*.yaml` files. Runs three regex passes:
+
+- **Secrets:** `(api_key|secret|password|token|private_key)\s*[=:]\s*["'][^"']{8,}`
+- **Dangerous patterns:** `eval(|subprocess shell=True|dangerouslySetInnerHTML|innerHTML =|yaml.load(|pickle.loads(`
+- **PII in logs:** `console.log/print/logger.* email|password|ssn|token`
+
+Non-blocking — emits warning output only. Hard gate remains `sdlc-secops` during `/review`. This hook gives early feedback during implementation before review phase.
+
+#### `verify-fail-capture.sh` — UserPromptSubmit verify-fail injector
+
+Fires on every prompt submission. When prompt matches `/verify` and ACTIVE_TASK.md already has a `verdict: FAIL` Observation in `## Test Results`, injects prior failure blockers into context window before Claude responds:
+
+```
+PREVIOUS /verify RESULT: FAIL
+Blockers from last run:
+  - AC#2: E2E test missing for email uniqueness
+  - Coverage: 72% (target 85%)
+Fix blockers before re-running /verify. Common fixes: run /tdd for missing E2E tests, run /refactor if coverage is below target.
+```
+
+No-op when last verify passed or no prior verify run exists.
+
+#### `pre-commit.template` — Git pre-commit hook template
+
+Not a Claude Code hook — standard git hook. Copy to `.git/hooks/pre-commit` + `chmod +x` to install. Blocks `git commit` when ACTIVE_TASK.md is in an early phase with no test evidence:
+
+- No active task → allow
+- Phase `intake/task`, `planning/*`, `implementation/code` (no tests) → **block**
+- Phase `implementation/tdd` or `testing/*` (tests exist, verify not run) → warn, allow
+- Phase `testing/verify` with `verdict: FAIL` → **block**
+- Phase `testing/verify` with `verdict: PASS` or later → allow
+- No Observation blocks → warn, allow (legacy state)
+
+Override: `git commit --no-verify` (intentional escape hatch, visible in message).
+
+---
+
+### Modified: `.claude/settings.local.json`
+
+Added `hooks` section wiring all 4 Claude Code hooks:
+
+```json
+"hooks": {
+  "SessionStart":    [{ "hooks": [{ "type": "command", "command": "...load-context.sh",        "timeout": 10, "statusMessage": "Loading harness state..." }] }],
+  "PreToolUse":      [{ "matcher": "Bash",       "hooks": [{ "type": "command", "command": "...phase-gate.sh",          "timeout": 10 }] }],
+  "PostToolUse":     [{ "matcher": "Write|Edit", "hooks": [{ "type": "command", "command": "...secops-scan.sh",         "timeout": 15, "async": true }] }],
+  "UserPromptSubmit":[{ "hooks": [{ "type": "command", "command": "...verify-fail-capture.sh", "timeout": 10 }] }]
+}
+```
+
+---
+
+## What Was Skipped and Why
+
+| Idea | Decision | Reason |
+|------|----------|--------|
+| MCP Data-Fetch (Jira/Linear on /task) | Skipped | Requires external MCP server per-project; harness is tool-agnostic |
+| Headless auto-refactor loop on verify fail | Skipped | Auto-revert without human confirmation violates clean-state principle; verify-fail hook surfaces failures instead |
+| CI post-merge auto-close | Skipped | CI environment is project-specific; document as reference pattern in INTEGRATION_GUIDE.md |
+
+---
+
+## What Did NOT Change
+
+- All 16 SKILL.md files — hooks add a second enforcement layer, not a replacement
+- ACTIVE_TASK.md schema — unchanged
+- Phase order — unchanged
+- Agent definitions — unchanged
+- Observation block protocol — hooks read these but do not write them
+
+---
+
+## File Inventory
+
+**Created (5 files):**
+```
+.claude/hooks/load-context.sh
+.claude/hooks/phase-gate.sh
+.claude/hooks/secops-scan.sh
+.claude/hooks/verify-fail-capture.sh
+.claude/hooks/pre-commit.template
+```
+
+**Modified (1 file):**
+```
+.claude/settings.local.json    added hooks section (SessionStart, PreToolUse, PostToolUse, UserPromptSubmit)
+```
+
+---
+
 ## File Inventory
 
 **Deleted (16 files):**
