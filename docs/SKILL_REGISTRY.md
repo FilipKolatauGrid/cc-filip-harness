@@ -2,30 +2,64 @@
 
 Single-page lookup: what skill handles what, in what order, reading and writing which ACTIVE_TASK.md sections.
 
-**Canonical spec:** `.claude/commands/` — each file is the full, authoritative definition. There is no separate `.claude/skills/` directory; commands serve both invocation paths.
+**Canonical spec:** `.claude/skills/<name>/SKILL.md` — each file is the full, authoritative definition.
+
+---
+
+## AI-Native Engineering Principles (embedded in all skills)
+
+Every skill in this harness enforces one or more of these principles:
+
+| Principle | Primary Enforcement |
+|-----------|-------------------|
+| **Initialization needs its own phase** | `task` warns on non-empty ACTIVE_TASK; `init` detects existing project files; all workflows have Phase 0 session-start check |
+| **Agents overreach and under-finish** | All skills hard-block on missing prior sections; `code`/`design`/`refactor` spawn `sdlc-investigator` before acting |
+| **Feature lists are harness primitives** | `code`, `tdd`, `verify` read acceptanceCriteria from `## Requirement` directly — never from design or memory |
+| **Agents declare victory too early** | `verify` requires test-run-output evidence; `review` blocks on self-reported verify; Observation blocks gate downstream skills |
+| **End-to-end testing changes results** | `tests` requires ≥1 E2E per AC; `tdd` writes E2E test per criterion; `verify` checks E2E status separately |
+| **Observability inside harness** | Every phase-closing skill appends Observation block with done-signal + verdict-source; downstream skills read these |
+| **Every session must leave clean state** | `close` is mandatory after merge; Phase 0 in all workflows; `task` warns if ACTIVE_TASK non-empty |
+
+---
+
+## Observation Block Protocol
+
+Every skill that writes to ACTIVE_TASK.md appends an Observation block:
+
+```markdown
+### Observation
+- phase: <phase/skill>
+- done-signal: <schema-populated | filesystem-written | test-run-output | coverage-report | diff-reviewed | secops-scan | smoke-tests-run>
+- done-criteria: <what constitutes actual completion>
+- verdict-source: <self-reported | external-evidence>
+```
+
+Downstream skills that gate on a prior phase read the Observation block — not just the section content.
+
+**Signals hierarchy (highest trust first):** `external-evidence` > `self-reported`
 
 ---
 
 ## Skills
 
-| Skill | Phase | File | Trigger | Reads | Writes |
-|-------|-------|------|---------|-------|--------|
-| `task` | Intake | `.claude/commands/task.md` | Start any task | — | `## Requirement` |
-| `init` | Intake | `.claude/commands/init.md` | Greenfield scaffold | `## Requirement` | `## Requirement` (addendum) |
-| `design` | Planning | `.claude/commands/design.md` | Design system | `## Requirement` | `## Design` |
-| `grill` | Planning | `.claude/commands/grill.md` | Stress-test decisions | `## Design` | `## ADRs` |
-| `risk` | Planning | `.claude/commands/risk.md` | Identify risks | `## Design` + `## ADRs` | `## Risks` |
-| `code` | Implementation | `.claude/commands/code.md` | Generate code | `## Design` | filesystem + `## Implementation Log` |
-| `tdd` | Implementation | `.claude/commands/tdd.md` | Test-drive criteria | `## Requirement` + `## Implementation Log` | `## Implementation Log` (append) |
-| `refactor` | Implementation | `.claude/commands/refactor.md` | Structural cleanup | `## Implementation Log` | `## Implementation Log` (append) |
-| `tests` | Testing | `.claude/commands/tests.md` | Plan test scenarios | `## Requirement` + `## Implementation Log` | `## Test Results` |
-| `coverage` | Testing | `.claude/commands/coverage.md` | Find coverage gaps | `## Test Results` | `## Test Results` (append) |
-| `verify` | Testing | `.claude/commands/verify.md` | Confirm all criteria | `## Requirement` + `## Test Results` | `## Test Results` (append) |
-| `review` | Review | `.claude/commands/review.md` | Review diff | `## Test Results` + git diff | `## Review Findings` |
-| `audit` | Review | `.claude/commands/audit.md` | OWASP audit | `## Review Findings` + git diff | `## Review Findings` (append) |
-| `deploy` | Integration | `.claude/commands/deploy.md` | Pre-deploy gate | `## Review Findings` | `## Deploy Checklist` |
-| `ship` | Integration | `.claude/commands/ship.md` | Validate deploy | `## Deploy Checklist` | `## Post-Deploy` |
-| `close` | Integration | `.claude/commands/close.md` | After merge | Full `ACTIVE_TASK.md` | `task-log/` + `.claude/context/` + ACTIVE_TASK.md reset |
+| Skill | Phase | File | Trigger | Reads | Writes | Key Observation Signal |
+|-------|-------|------|---------|-------|--------|----------------------|
+| `task` | Intake | `.claude/skills/task/SKILL.md` | Start any task | — | `## Requirement` | schema-populated |
+| `init` | Intake | `.claude/skills/init/SKILL.md` | Greenfield scaffold | `## Requirement` | `## Requirement` (scaffold) | filesystem-written |
+| `design` | Planning | `.claude/skills/design/SKILL.md` | Design system | `## Requirement` | `## Design` | schema-populated |
+| `grill` | Planning | `.claude/skills/grill/SKILL.md` | Stress-test decisions | `## Design` | `## ADRs` | adrs-locked-sentinel-present |
+| `risk` | Planning | `.claude/skills/risk/SKILL.md` | Identify risks | `## Design` + `## ADRs` (locked) | `## Risks` | schema-populated |
+| `code` | Implementation | `.claude/skills/code/SKILL.md` | Generate code | `## Design` | filesystem + `## Implementation Log` | filesystem-written |
+| `tdd` | Implementation | `.claude/skills/tdd/SKILL.md` | Test-drive criteria | `## Requirement` + `## Implementation Log` | `## Implementation Log` (append) | test-run-output |
+| `refactor` | Implementation | `.claude/skills/refactor/SKILL.md` | Structural cleanup | `## Implementation Log` | `## Implementation Log` (append) | test-run-output |
+| `tests` | Testing | `.claude/skills/tests/SKILL.md` | Plan test scenarios | `## Requirement` + `## Implementation Log` | `## Test Results` | schema-populated |
+| `coverage` | Testing | `.claude/skills/coverage/SKILL.md` | Find coverage gaps | `## Test Results` | `## Test Results` (append) | coverage-report |
+| `verify` | Testing | `.claude/skills/verify/SKILL.md` | Confirm all criteria | `## Requirement` + `## Test Results` | `## Test Results` (append) | test-run-output |
+| `review` | Review | `.claude/skills/review/SKILL.md` | Review diff | `## Test Results` + git diff | `## Review Findings` | diff-reviewed |
+| `audit` | Review | `.claude/skills/audit/SKILL.md` | OWASP audit | `## Review Findings` + git diff | `## Review Findings` (append) | secops-scan |
+| `deploy` | Integration | `.claude/skills/deploy/SKILL.md` | Pre-deploy gate | `## Review Findings` | `## Deploy Checklist` | secops-scan |
+| `ship` | Integration | `.claude/skills/ship/SKILL.md` | Validate deploy | `## Deploy Checklist` | `## Post-Deploy` | smoke-tests-run |
+| `close` | Integration | `.claude/skills/close/SKILL.md` | After merge | Full `ACTIVE_TASK.md` | `task-log/` + `.claude/context/` + reset | filesystem-written |
 
 ---
 
@@ -35,14 +69,16 @@ Single-page lookup: what skill handles what, in what order, reading and writing 
 |----------|------|----------|-----------------|
 | `full-sdlc` | `.claude/workflows/full-sdlc.md` | New feature, complete lifecycle | None |
 | `bug-fix` | `.claude/workflows/bug-fix.md` | Fixing a bug, targeted change | `audit` (if no auth/input touch), `deploy` (if not hotfix) |
-| `feature-build` | `.claude/workflows/feature-build.md` | Feature with lighter planning | `risk` (small/low-risk features), `deploy` (if not deploying this cycle) |
+| `feature-build` | `.claude/workflows/feature-build.md` | Feature with lighter planning | `risk` (small/low-risk, no HIGH-consequence ADR) |
 | `refactor` | `.claude/workflows/refactor.md` | Structural improvement, no behavior change | `deploy`, `ship` (unless DB/config touched) |
+
+All workflows include Phase 0: session-start ACTIVE_TASK.md state check.
 
 ---
 
 ## Agents
 
-Spawned by skills — not invoked directly. Each runs as a sub-agent and injects output back into the calling skill.
+Spawned by skills — not invoked directly.
 
 | Agent | Spawned By | Model | Purpose |
 |-------|-----------|-------|---------|
@@ -58,18 +94,18 @@ Spawned by skills — not invoked directly. Each runs as a sub-agent and injects
 Skills write sections in this order. Each skill hard-blocks if its required prior section is missing.
 
 ```
-## Requirement        ← /task, /init
-## Design             ← /design
-## ADRs               ← /grill
-## Risks              ← /risk
-## Implementation Log ← /code, /tdd, /refactor
-## Test Results       ← /tests, /coverage, /verify
-## Review Findings    ← /review, /audit
-## Deploy Checklist   ← /deploy
-## Post-Deploy        ← /ship
+## Requirement        ← task, init
+## Design             ← design
+## ADRs               ← grill (locked sentinel required for downstream)
+## Risks              ← risk
+## Implementation Log ← code, tdd, refactor
+## Test Results       ← tests, coverage, verify
+## Review Findings    ← review, audit
+## Deploy Checklist   ← deploy
+## Post-Deploy        ← ship
 ```
 
-`close` reads all sections, then resets ACTIVE_TASK.md to empty schema.
+`close` reads all sections + all Observation blocks, then resets ACTIVE_TASK.md to empty schema.
 
 ---
 
@@ -78,13 +114,13 @@ Skills write sections in this order. Each skill hard-blocks if its required prio
 | Tool | Type | Install | When to Use |
 |------|------|---------|-------------|
 | [caveman](https://github.com/juliusbrussee/caveman) | Plugin | `/plugin install caveman` | All sessions — reduces output tokens ~75% |
-| [grill-me](https://github.com/mattpocock/skills) | Skill | auto-loaded | Inspired `/grill` — same interrogation pattern (full tree, one question, codebase-first). `/grill` implements it directly. |
+| [grill-me](https://github.com/mattpocock/skills) | Skill | auto-loaded | Inspired `/grill` — same interrogation pattern. `/grill` implements it directly. |
 
 ---
 
 ## Context Files
 
-Generated by `close`, loaded at session start via `CLAUDE.md`.
+Generated by `close`, loaded at session start.
 
 | File | Updated When | Contains |
 |------|-------------|---------|
@@ -113,3 +149,4 @@ Generated by `close`, loaded at session start via `CLAUDE.md`.
 | I'm ready to deploy | `deploy` |
 | I just deployed | `ship` |
 | Task is done / merged | `close` |
+| Something seems wrong with a phase result | Check that phase's Observation block |

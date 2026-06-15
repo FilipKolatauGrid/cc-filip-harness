@@ -1,26 +1,22 @@
 ---
-description: Initialize project scaffold — greenfield project setup from requirements
-phase: intake
-reads:
-  - "## Requirement"
-writes:
-  - "## Requirement (scaffold addendum)"
-  - "filesystem"
-hard_blocks:
-  - condition: "## Requirement is empty"
-    message: "Run `task` first. Output required in ACTIVE_TASK.md → ## Requirement."
+name: init
+description: Initialize project scaffold — greenfield project setup from requirements. Use when starting a brand-new project that has no existing source files, when the user says "scaffold", "init", "set up project structure", "create new project", or after `task` completes for a greenfield requirement. Always check for existing files before scaffolding — if source files are detected, warn rather than overwrite. Skip this skill and run `design` instead if the project already has code.
 ---
 
 # Init Project
 
-Scaffold project structure from a structured requirement: directories, config files, tooling, ACTIVE_TASK.md — stack-agnostic.
+Scaffold project structure from a structured requirement: directories, config files, tooling — stack-agnostic.
 
-**Greenfield only.** If the project already has source files (`src/`, `package.json`, `pyproject.toml`, `go.mod`, `Cargo.toml`, `pom.xml`, or similar), warn the user before scaffolding: "Existing project detected — `init` is for greenfield projects. Running it may conflict with existing structure. Confirm to proceed or run `design` instead."
+## Principles in Play
+
+**Initialization needs its own phase.** Scaffolding is a distinct phase from design — it creates the surface `design` will reason about. Running scaffold after design, or design before scaffold, produces conflicts. This skill enforces the intake→scaffold→design order.
+
+**Every session must leave clean state.** If existing source files are detected, init warns rather than silently overwriting — protecting in-progress work.
 
 ## Prerequisites
 
 Reads: `ACTIVE_TASK.md` → `## Requirement`
-Writes: project file system + appends scaffold summary to `ACTIVE_TASK.md → ## Requirement`
+Writes: project filesystem + appends scaffold summary to `ACTIVE_TASK.md → ## Requirement`
 
 **Hard block:** If `## Requirement` is empty:
 > "Run `task` first. Output required in ACTIVE_TASK.md → ## Requirement."
@@ -41,7 +37,7 @@ Self-inject from `ACTIVE_TASK.md → ## Requirement`: extract `type`, `goal`, `t
 **Generate:**
 1. **Directory tree** — recommended layout for this stack and project type
 2. **Config file list** — e.g., `package.json`, `pyproject.toml`, `Cargo.toml`
-3. **`ACTIVE_TASK.md`** — copy the fixed schema template into project root
+3. **`ACTIVE_TASK.md`** — copy the fixed schema template into project root if not present
 4. **`CLAUDE.md` content** — build, test, lint commands for this stack
 5. **First commit checklist** — which files to create before writing any feature code
 6. **Questions** — clarifications needed (e.g., monorepo? Docker?)
@@ -49,41 +45,58 @@ Self-inject from `ACTIVE_TASK.md → ## Requirement`: extract `type`, `goal`, `t
 ## Pattern
 
 ```javascript
-// Self-inject from ACTIVE_TASK.md
 const requirement = readActiveTask("## Requirement");
 if (!requirement) hardBlock("task");
 
-// Generate scaffold
-const scaffold = await agent(enrichedMetaPrompt, { schema: SCAFFOLD_SCHEMA });
-// Output: { directoryTree, configFiles, claudeMdContent, firstCommitChecklist, questions }
+// Safety: detect existing project files
+const existingFiles = detectProjectFiles(["src/", "package.json", "pyproject.toml", "go.mod"]);
+if (existingFiles.length > 0) {
+  warn(`Existing project detected (${existingFiles.join(", ")}). Confirm to scaffold or run \`design\` instead.`);
+}
 
-// Write scaffold summary back to ACTIVE_TASK → ## Requirement as addendum
+const scaffold = await agent(enrichedMetaPrompt(requirement), { schema: SCAFFOLD_SCHEMA });
 appendToActiveTask("## Requirement", `\n### Scaffold\n${scaffold.summary}`);
+appendObservation("init", { doneCriteria: "directory tree created, config files written, CLAUDE.md present" });
+```
+
+## Observation Block
+
+Append after scaffolding:
+
+```
+### Observation
+- phase: intake/init
+- done-signal: filesystem-written
+- done-criteria: directory tree exists, config file list written, CLAUDE.md present
+- files-touched: [list scaffold files created]
+- verdict-source: filesystem-check
 ```
 
 ## Trigger Points
 
-- After `task` outputs structured requirement
+- After `task` outputs structured requirement for a greenfield project
 - User says "scaffold", "init", "set up project structure", "create new project"
-- Greenfield project with no existing structure
+- Greenfield — no existing `src/`, `package.json`, or equivalent
 
 ## Output
 
-Appends scaffold summary to `ACTIVE_TASK.md → ## Requirement`:
+Creates project filesystem. Appends scaffold summary to `ACTIVE_TASK.md → ## Requirement`:
 - Directory tree
-- Config files to create
+- Config files created
 - First commit checklist
 
 ## Checklist
 
 - [ ] Read ACTIVE_TASK.md → ## Requirement; hard block if empty
-- [ ] Detect or confirm tech stack
+- [ ] Detect existing project files — warn (not block) if found
+- [ ] Detect or confirm tech stack from requirement
 - [ ] Generate directory structure appropriate for stack + project type
 - [ ] List required config files with minimal viable content
 - [ ] Draft CLAUDE.md with build + test + lint commands
 - [ ] Produce first-commit checklist
-- [ ] Ask clarifying questions for ambiguous choices
+- [ ] Ask clarifying questions for ambiguous choices (monorepo? Docker? CI?)
 - [ ] Append scaffold summary to ACTIVE_TASK.md → ## Requirement
+- [ ] Append Observation block
 - [ ] Next: run `design`
 
 ## Example
