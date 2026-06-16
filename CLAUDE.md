@@ -118,7 +118,7 @@ Every skill hard-blocks if its required prior section is missing. Observation bl
 | From phase | To phase | Gate |
 |------------|----------|------|
 | Intake | Planning | ## Requirement populated |
-| Planning | Implementation | ## Design + ## ADRs populated (ADRs locked) |
+| Planning | Implementation | ## Design + ## ADRs populated (ADRs locked) + ## Risks Observation `planning-gate: confirmed` |
 | Implementation | Testing | ## Implementation Log with test-run-output Observation |
 | Testing | Review | ## Test Results PASS with external-evidence Observation |
 | Review | Integration | ## Review Findings + all CRITICAL resolved |
@@ -160,6 +160,9 @@ Type tags: `[FE]` `[BE]` `[FULLSTACK]` `[BUGFIX]` `[REFACTOR]` `[INFRA]` `[DOCS]
 - Writing multiple tasks into one ACTIVE_TASK.md
 - Accepting a `self-reported` Observation verdict where `external-evidence` is required
 - Declaring a phase complete without writing its Observation block
+- Running `code` without `planning-gate: confirmed` in `## Risks` Observation
+- Reading full ACTIVE_TASK.md in any skill that defines section-scoped read boundaries (only `close` may read full file)
+- Passing full ACTIVE_TASK.md to `sdlc-reviewer` — pass only diff + AC + apiContracts
 
 ## File Map
 

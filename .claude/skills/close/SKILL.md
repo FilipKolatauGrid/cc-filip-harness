@@ -33,6 +33,12 @@ Writes:
 **Warning (not block):** If key phase Observation blocks are missing (e.g., verify, review):
 > "Warning: Some phases lack Observation blocks — the task archive may be incomplete. Recommend re-running missing phases before closing. Proceed anyway? (y/n)"
 
+**Warning (not block):** If `## Deploy Checklist` is empty:
+> "Warning: deploy phase was never run — archiving without deploy artifact."
+
+**Warning (not block):** If `## Post-Deploy` is empty:
+> "Warning: ship phase was never run — no smoke-test evidence in archive."
+
 ## Agent Delegation
 
 Context snapshot generation is offloaded to `sdlc-context-builder` agents. If both FE and BE were touched, spawn **two agents in parallel** — they write different files with no shared state.
@@ -61,38 +67,12 @@ Self-inject full `ACTIVE_TASK.md` content.
 
 ## Pattern
 
-```javascript
-const activeTask = readFullActiveTask();
-if (!activeTask["## Requirement"]) hardBlock("task");
-if (!activeTask["## Review Findings"]) hardBlock("review");
-
-// Observation scan — warn on missing evidence
-const observations = scanObservationBlocks(activeTask);
-const missingObs = REQUIRED_PHASES.filter(p => !observations[p]);
-if (missingObs.length > 0) {
-  warn(`Missing Observation blocks for: ${missingObs.join(", ")}. Archive may be incomplete.`);
-}
-
-const type = deriveTypeTag(activeTask);
-const slug = slugify(activeTask["## Requirement"].goal);
-const date = getCurrentDate(); // YYYYMMDD
-
-// Archive
-writeFile(`task-log/${date}-${type}-${slug}.md`, archiveContent(activeTask, observations));
-
-// Context snapshots (parallel when FULLSTACK)
-const filesChanged = activeTask["## Implementation Log"].filesCreated;
-const contextJobs = [];
-if (touchesFE(activeTask)) {
-  contextJobs.push(() => agent(`Build FE context snapshot`, { agentType: "sdlc-context-builder" }));
-}
-if (touchesBE(activeTask)) {
-  contextJobs.push(() => agent(`Build BE context snapshot`, { agentType: "sdlc-context-builder" }));
-}
-await parallel(contextJobs);
-
-// Reset
-writeFile("ACTIVE_TASK.md", EMPTY_SCHEMA_TEMPLATE);
+```
+// 1. Hard-block: ## Requirement empty, ## Review Findings empty
+// 2. Scan all Observation blocks; warn on missing phases, empty Deploy/Post-Deploy
+// 3. Collect [deferred] MEDIUM findings from ## Review Findings → write ## Deferred in archive
+// 4. Derive type tag + slug; write task-log/YYYYMMDD-[TYPE]-slug.md (with ## Deferred section)
+// 5. Parallel spawn sdlc-context-builder (FE + BE if FULLSTACK); reset ACTIVE_TASK.md; verify reset
 ```
 
 ## Trigger Points
@@ -103,7 +83,7 @@ writeFile("ACTIVE_TASK.md", EMPTY_SCHEMA_TEMPLATE);
 
 ## Output
 
-- `task-log/YYYYMMDD-[TYPE]-slug.md` created with full task archive
+- `task-log/YYYYMMDD-[TYPE]-slug.md` created with full task archive + `## Deferred` section (MEDIUM findings tagged `[deferred]` in review)
 - `.claude/context/FE_CONTEXT.md` updated (if FE touched)
 - `.claude/context/BE_CONTEXT.md` updated (if BE touched)
 - `ACTIVE_TASK.md` reset to empty fixed schema
@@ -113,9 +93,12 @@ writeFile("ACTIVE_TASK.md", EMPTY_SCHEMA_TEMPLATE);
 - [ ] Read full ACTIVE_TASK.md; hard block if ## Requirement empty
 - [ ] Hard block if ## Review Findings empty
 - [ ] Scan Observation blocks across all phases — warn if key phases missing evidence
+- [ ] Warn (non-blocking) if ## Deploy Checklist empty
+- [ ] Warn (non-blocking) if ## Post-Deploy empty
+- [ ] Collect MEDIUM findings tagged `[deferred]` from ## Review Findings
 - [ ] Derive type tag from task type + tech stack
 - [ ] Generate slug from goal (lowercase, hyphens)
-- [ ] Write task archive to task-log/YYYYMMDD-[TYPE]-slug.md (main thread)
+- [ ] Write task archive to task-log/YYYYMMDD-[TYPE]-slug.md including ## Deferred section (main thread)
 - [ ] Extract filesChanged from ## Implementation Log
 - [ ] If FE files touched: spawn `sdlc-context-builder` (layer=FE)
 - [ ] If BE files touched: spawn `sdlc-context-builder` (layer=BE)

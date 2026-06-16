@@ -17,7 +17,9 @@ Review the implementation diff for correctness, design alignment, test quality, 
 
 ## Prerequisites
 
-Reads: `ACTIVE_TASK.md` → `## Test Results` and current git diff
+Reads: `ACTIVE_TASK.md` → `## Test Results` (stop at next `##`) and `## Requirement` (stop at next `##`). Do NOT read full ACTIVE_TASK.md.
+Also reads: `## Design` → `apiContracts` field only (for reviewer context extraction).
+Also reads: current git diff.
 Writes: `ACTIVE_TASK.md` → `## Review Findings`
 
 **Hard block:** If `## Test Results` is empty:
@@ -40,35 +42,29 @@ Merge both outputs. Take worst verdict.
 
 ## Pattern
 
-```javascript
-const testResults = readActiveTask("## Test Results");
-if (!testResults) hardBlock("tests");
-if (!verificationPassed(testResults)) hardBlock("verify — PASS required");
-
-// Check evidence source
-const verifyObs = getObservation(testResults, "verify");
-if (!verifyObs || verifyObs.verdictSource !== "external-evidence") {
-  hardBlock("Verify observation missing or self-reported. Re-run verify with actual test execution.");
-}
-
-// Parallel: code review + secrets/compliance scan
-const [reviewOutput, secopsOutput] = await parallel([
-  () => agent("review — correctness, design alignment, test quality, AC coverage", {
-    agentType: "sdlc-reviewer",
-    label: "review:diff"
-  }),
-  () => agent("review — secrets, vuln patterns, compliance drift", {
-    agentType: "sdlc-secops",
-    label: "secops:review"
-  })
-]);
-
-const merged = mergeFindings(reviewOutput, secopsOutput);
-const verdict = worstVerdict(reviewOutput.verdict, secopsOutput.verdict);
-
-writeActiveTask("## Review Findings", { ...merged, verdict });
-appendObservation("review", { doneCriteria: "both agents ran, findings merged, verdict determined" });
 ```
+// 1. Hard-block: Test Results empty, no PASS verdict, verify verdict-source self-reported
+// 2. Extract reviewer context: { diff, AC from ##Requirement, apiContracts from ##Design only }
+// 3. Parallel spawn: sdlc-reviewer(reviewerContext) + sdlc-secops(full diff)
+// 4. Merge findings; take worst verdict; flag MEDIUM items as deferred candidates
+// 5. Write ## Review Findings + Observation block
+```
+
+## Reviewer Context Extraction
+
+Before spawning `sdlc-reviewer`, extract only what it needs — do NOT pass full ACTIVE_TASK.md:
+
+```
+reviewerContext = {
+  diff: git diff main...HEAD,
+  acceptanceCriteria: readSection("## Requirement").acceptanceCriteria,
+  apiContracts: readSection("## Design").apiContracts
+}
+```
+
+`sdlc-secops` receives the full diff only (no ACTIVE_TASK sections needed for pattern scan).
+
+**MEDIUM findings:** In the findings list, tag any MEDIUM item not fixed inline as `[deferred]`. `close` will collect these for the task-log `## Deferred` section.
 
 ## Observation Block
 

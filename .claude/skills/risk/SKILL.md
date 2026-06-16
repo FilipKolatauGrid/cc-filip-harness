@@ -15,7 +15,7 @@ Identify, score, and plan mitigations for technical, timeline, and dependency ri
 
 ## Prerequisites
 
-Reads: `ACTIVE_TASK.md` → `## Design` and `## ADRs`
+Reads: `ACTIVE_TASK.md` → `## Design` (stop at next `##`) and `## ADRs` (stop at next `##`). Do NOT read full ACTIVE_TASK.md.
 Writes: `ACTIVE_TASK.md` → `## Risks`
 
 **Hard block:** If `## Design` is empty:
@@ -46,16 +46,12 @@ Self-inject from `ACTIVE_TASK.md → ## Design` and `## ADRs`: extract component
 
 ## Pattern
 
-```javascript
-const design = readActiveTask("## Design");
-const adrs = readActiveTask("## ADRs");
-if (!design) hardBlock("design");
-if (!adrs) hardBlock("grill");
-if (!adrs.includes("<!-- ADRs LOCKED")) hardBlock("grill — ADRs not locked");
-
-const risks = await agent(enrichedMetaPrompt(design, adrs), { schema: RISK_SCHEMA });
-writeActiveTask("## Risks", risks);
-appendObservation("risk", { doneCriteria: "registry complete, top3 explicit, assumptions logged" });
+```
+// 1. Hard-block: ## Design empty, ## ADRs empty, ADRs LOCKED sentinel absent
+// 2. Self-inject: components + ADR consequences from ## Design (scoped) + ## ADRs (scoped)
+// 3. Generate risk registry (id, L, I, severity, mitigation), top3, assumptions log, blocking risks
+// 4. Write to ACTIVE_TASK.md → ## Risks; append Observation (planning-gate: pending)
+// 5. Output Planning Complete prompt; on "proceed" update planning-gate: confirmed in Observation
 ```
 
 ## Observation Block
@@ -68,6 +64,7 @@ Append after writing `## Risks`:
 - done-signal: schema-populated
 - done-criteria: risk registry present, top3 surfaced, assumptions logged, blocking-risks identified
 - adrs-locked-verified: true
+- planning-gate: pending | confirmed
 - verdict-source: self-reported
 ```
 
@@ -85,10 +82,29 @@ Writes to `ACTIVE_TASK.md → ## Risks`:
 - Assumptions log
 - Blocking risks (any that should pause implementation)
 
+## Planning Gate
+
+After writing `## Risks` and appending the Observation block, output this section:
+
+```
+## Planning Complete
+
+**What will be built:**
+- [Design: 1-line component summary + key API contract]
+- [ADRs: 2–3 most consequential locked decisions]
+- [Risks: top risk ID + mitigation in one line]
+
+**Confirm to proceed to implementation? (reply "proceed" or redirect)**
+```
+
+On developer confirmation ("proceed"): update `planning-gate: pending` → `planning-gate: confirmed` in the Observation block already written to ACTIVE_TASK.md.
+
+`code` hard-blocks if `planning-gate: confirmed` is absent from the `## Risks` Observation block.
+
 ## Checklist
 
-- [ ] Read ACTIVE_TASK.md → ## Design; hard block if empty
-- [ ] Read ACTIVE_TASK.md → ## ADRs; hard block if empty or missing LOCKED sentinel
+- [ ] Read ACTIVE_TASK.md → ## Design (stop at next ##); hard block if empty
+- [ ] Read ACTIVE_TASK.md → ## ADRs (stop at next ##); hard block if empty or missing LOCKED sentinel
 - [ ] Identify risks from: external deps, ADR consequences, timeline, team, unverified assumptions
 - [ ] Score each risk: likelihood (H/M/L) × impact (H/M/L) = severity
 - [ ] Write mitigation for each risk
@@ -96,7 +112,9 @@ Writes to `ACTIVE_TASK.md → ## Risks`:
 - [ ] Log unverified assumptions
 - [ ] Flag any blocking risks (HIGH severity with no clear mitigation)
 - [ ] Write output to ACTIVE_TASK.md → ## Risks
-- [ ] Append Observation block
+- [ ] Append Observation block with `planning-gate: pending`
+- [ ] Output Planning Complete section — wait for dev confirmation
+- [ ] On "proceed": update Observation block `planning-gate: confirmed`
 - [ ] Next: run `code`
 
 ## Example

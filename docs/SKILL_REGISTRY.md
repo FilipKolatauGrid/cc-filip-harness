@@ -44,22 +44,22 @@ Downstream skills that gate on a prior phase read the Observation block — not 
 
 | Skill | Phase | File | Trigger | Reads | Writes | Key Observation Signal |
 |-------|-------|------|---------|-------|--------|----------------------|
-| `task` | Intake | `.claude/skills/task/SKILL.md` | Start any task | — | `## Requirement` | schema-populated |
+| `task` | Intake | `.claude/skills/task/SKILL.md` | Start any task | latest task-log `## Deferred` (if exists) | `## Requirement` | schema-populated |
 | `init` | Intake | `.claude/skills/init/SKILL.md` | Greenfield scaffold | `## Requirement` | `## Requirement` (scaffold) | filesystem-written |
 | `design` | Planning | `.claude/skills/design/SKILL.md` | Design system | `## Requirement` | `## Design` | schema-populated |
-| `grill` | Planning | `.claude/skills/grill/SKILL.md` | Stress-test decisions | `## Design` | `## ADRs` | adrs-locked-sentinel-present |
-| `risk` | Planning | `.claude/skills/risk/SKILL.md` | Identify risks | `## Design` + `## ADRs` (locked) | `## Risks` | schema-populated |
-| `code` | Implementation | `.claude/skills/code/SKILL.md` | Generate code | `## Design` | filesystem + `## Implementation Log` | filesystem-written |
+| `grill` | Planning | `.claude/skills/grill/SKILL.md` | Stress-test decisions | `## Design` (scoped) | `## ADRs` | adrs-locked-sentinel-present |
+| `risk` | Planning | `.claude/skills/risk/SKILL.md` | Identify risks | `## Design` + `## ADRs` (scoped, locked) | `## Risks` + planning-gate | schema-populated + planning-gate:confirmed |
+| `code` | Implementation | `.claude/skills/code/SKILL.md` | Generate code | `## Design` + `## Requirement` (scoped) | filesystem + `## Implementation Log` | filesystem-written |
 | `tdd` | Implementation | `.claude/skills/tdd/SKILL.md` | Test-drive criteria | `## Requirement` + `## Implementation Log` | `## Implementation Log` (append) | test-run-output |
 | `refactor` | Implementation | `.claude/skills/refactor/SKILL.md` | Structural cleanup | `## Implementation Log` | `## Implementation Log` (append) | test-run-output |
 | `tests` | Testing | `.claude/skills/tests/SKILL.md` | Plan test scenarios | `## Requirement` + `## Implementation Log` | `## Test Results` | schema-populated |
 | `coverage` | Testing | `.claude/skills/coverage/SKILL.md` | Find coverage gaps | `## Test Results` | `## Test Results` (append) | coverage-report |
 | `verify` | Testing | `.claude/skills/verify/SKILL.md` | Confirm all criteria | `## Requirement` + `## Test Results` | `## Test Results` (append) | test-run-output |
-| `review` | Review | `.claude/skills/review/SKILL.md` | Review diff | `## Test Results` + git diff | `## Review Findings` | diff-reviewed |
+| `review` | Review | `.claude/skills/review/SKILL.md` | Review diff | `## Test Results` (scoped) + extracted AC + apiContracts + git diff | `## Review Findings` (with `[deferred]` MEDIUM tags) | diff-reviewed |
 | `audit` | Review | `.claude/skills/audit/SKILL.md` | OWASP audit | `## Review Findings` + git diff | `## Review Findings` (append) | secops-scan |
 | `deploy` | Integration | `.claude/skills/deploy/SKILL.md` | Pre-deploy gate | `## Review Findings` | `## Deploy Checklist` | secops-scan |
 | `ship` | Integration | `.claude/skills/ship/SKILL.md` | Validate deploy | `## Deploy Checklist` | `## Post-Deploy` | smoke-tests-run |
-| `close` | Integration | `.claude/skills/close/SKILL.md` | After merge | Full `ACTIVE_TASK.md` | `task-log/` + `.claude/context/` + reset | filesystem-written |
+| `close` | Integration | `.claude/skills/close/SKILL.md` | After merge | Full `ACTIVE_TASK.md` | `task-log/` (with `## Deferred`) + `.claude/context/` + reset | filesystem-written |
 
 ---
 

@@ -1,6 +1,160 @@
+# Harness Cycle 2: Token Reduction + HITL Gates + Deferred Findings
+
+**Date:** 2026-06-16
+**Scope:** 6 SKILL.md files + SKILL_REGISTRY.md + CLAUDE.md — planning gate, grill batch-resolve, section-scoped reads, pseudocode compression, reviewer context extraction, close warnings, deferred findings chain
+
+---
+
+## What Changed
+
+### 1. Planning Gate (AC-1)
+
+**Before:** `risk` output a risk register and said "Next: run `code`." No dev confirmation required. Wrong design compounded silently through 8+ phases.
+
+**After:** `risk` ends with a `## Planning Complete` section: 3-bullet summary (design + key ADRs + top risk) and explicit "Confirm to proceed?" prompt. On "proceed", updates `planning-gate: confirmed` in the Risks Observation block.
+
+`code` now hard-blocks if `## Risks` Observation does not contain `planning-gate: confirmed`:
+> "Planning gate not confirmed. Run `risk` and confirm the planning summary before proceeding to `code`."
+
+CLAUDE.md Phase Gating table updated. CLAUDE.md Forbidden list updated.
+
+---
+
+### 2. Grill Phase 0 Batch-Resolve (AC-2)
+
+**Before:** Every decision — including ones answerable from codebase — required individual HITL turns. Cycle 1: 11 turns for 8 codebase-resolvable + 3 human decisions.
+
+**After:** Grill now runs a Phase 0 before any questions:
+1. Classifies all decisions as `codebase-resolvable` or `human-required`
+2. Shows all codebase-resolvable decisions as a numbered list with proposed answers: "N decisions resolved from codebase — confirm all or override any:"
+3. Only human-required decisions get individual HITL turns (Phase 1+)
+
+Classification rule is explicit and binary: `codebase-resolvable = answer derivable solely from existing file content, zero product or UX judgment required.`
+
+"One question per message" rule preserved — applies to Phase 1 only.
+
+---
+
+### 3. Section-Scoped ACTIVE_TASK Reads (AC-3)
+
+**Before:** All skills read full ACTIVE_TASK.md (~12K tokens by audit phase). Every skill paid for sections it didn't need.
+
+**After:** Each SKILL.md Prerequisites section now specifies exact sections to read with "stop at next `##`" boundary. Per-skill, not a shared pattern (consistent with existing convention).
+
+| Skill | Reads |
+|-------|-------|
+| `grill` | `## Design` + `## Requirement` (scoped) |
+| `risk` | `## Design` + `## ADRs` (scoped) |
+| `code` | `## Design` + `## Requirement` (scoped) |
+| `review` | `## Test Results` + `## Requirement` (scoped) + `## Design.apiContracts` only |
+| `close` | Full ACTIVE_TASK.md (only legitimate exception) |
+
+CLAUDE.md Forbidden: "Reading full ACTIVE_TASK.md in any skill that defines section-scoped read boundaries."
+
+---
+
+### 4. Pseudocode Compression (AC-4)
+
+**Before:** Each SKILL.md `## Pattern` section contained 8–31 lines of JavaScript pseudocode. Conceptual only — no runtime value. ~75 lines total across 6 skills.
+
+**After:** Each `## Pattern` compressed to a 5-line comment block covering the 5 invariant steps:
+```
+// 1. Hard-block guard
+// 2. Self-inject from required sections
+// 3. Generate output
+// 4. Write to ACTIVE_TASK.md section
+// 5. Append Observation block
+```
+
+Skills compressed: `risk`, `grill` (Session Flow restructured), `code`, `review`, `close`, `task`.
+
+---
+
+### 5. Review Subagent Context Extraction (AC-5)
+
+**Before:** `sdlc-reviewer` received full ACTIVE_TASK.md + full diff. Reviewer read `## Risks`, `## ADRs`, and full TDD log — none of which it needs.
+
+**After:** Before spawning `sdlc-reviewer`, `review` extracts a scoped context object:
+```
+reviewerContext = {
+  diff: git diff main...HEAD,
+  acceptanceCriteria: readSection("## Requirement").acceptanceCriteria,
+  apiContracts: readSection("## Design").apiContracts
+}
+```
+
+`sdlc-secops` unchanged — still receives full diff (needs it for pattern scan).
+
+CLAUDE.md Forbidden: "Passing full ACTIVE_TASK.md to `sdlc-reviewer`."
+
+---
+
+### 6. Close Deploy/Ship Warnings (AC-6)
+
+**Before:** `close` warned only on missing Observation blocks. Skipped deploy/ship was silently archived.
+
+**After:** Two new non-blocking warnings before archive:
+- `## Deploy Checklist` empty → "deploy phase was never run — archiving without deploy artifact"
+- `## Post-Deploy` empty → "ship phase was never run — no smoke-test evidence in archive"
+
+Non-blocking by design — hotfix and docs tasks legitimately skip deploy/ship.
+
+---
+
+### 7. Deferred MEDIUM Findings Chain (AC-7)
+
+**Before:** MEDIUM findings deferred in `review` disappeared into the archive. Next task had no awareness of them.
+
+**After:** Two-part chain:
+
+**`review`:** MEDIUM findings not fixed inline are tagged `[deferred]` in the findings list.
+
+**`close`:** Collects all `[deferred]` items from `## Review Findings`. Writes them to task-log as a `## Deferred` section. Archive output format updated.
+
+**`task`:** At start of every invocation, checks latest task-log for `## Deferred`. If non-empty:
+> "Previous task deferred N issues — inherit as AC candidates? (y/n)"
+Lists items. On yes: prepends as candidate ACs. On no/no task-log: proceeds silently.
+
+---
+
+### 8. SKILL_REGISTRY.md Updated (AC-8)
+
+Skills table `Reads` and `Key Observation Signal` columns updated for: `task`, `grill`, `risk`, `code`, `review`, `close`.
+
+---
+
+## What Did NOT Change
+
+- Phase order — all workflows unchanged
+- ACTIVE_TASK.md schema — same 9 sections
+- Agent definitions — sdlc-investigator, sdlc-reviewer, sdlc-secops, sdlc-context-builder unchanged
+- Hard-block gates — all prior gates preserved; new gates added on top
+- Observation block protocol — format unchanged; `planning-gate` field added to risk Observation only
+- Task archival format — same slug/date/type pattern; `## Deferred` section added to archive
+
+---
+
+## File Inventory
+
+**Modified (8 files):**
+```
+.claude/skills/risk/SKILL.md    planning gate + section-scoped reads + pattern compression
+.claude/skills/grill/SKILL.md   Phase 0 batch-resolve + section-scoped reads
+.claude/skills/code/SKILL.md    planning-gate hard-block + section-scoped reads + pattern compression
+.claude/skills/review/SKILL.md  reviewer context extraction + MEDIUM deferred tagging + section-scoped reads + pattern compression
+.claude/skills/close/SKILL.md   deploy/ship warnings + deferred collection + pattern compression
+.claude/skills/task/SKILL.md    deferred findings check + pattern compression
+docs/SKILL_REGISTRY.md          updated reads + signals for 6 skills
+CLAUDE.md                       phase gating table + 3 new Forbidden entries
+```
+
+---
+
+---
+
 # Harness Transformation: Commands → Skills + AI-Native Principles
 
-**Date:** 2026-06-15  
+**Date:** 2026-06-15
 **Scope:** Full harness restructure — 16 skills migrated, 7 principles embedded, observability protocol added
 
 ---

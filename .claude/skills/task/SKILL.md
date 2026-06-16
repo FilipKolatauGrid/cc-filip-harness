@@ -44,19 +44,12 @@ Given user text describing a task (feature request, bug report, refactor request
 
 ## Pattern
 
-```javascript
-// Guard: existing active task
-const existing = readActiveTask("## Requirement");
-if (existing && existing.trim() !== "") {
-  warn("ACTIVE_TASK.md has an existing requirement. Run `close` before starting a new task.");
-}
-
-const userInput = getInput();
-const requirement = await agent(enrichedMetaPrompt(userInput), { schema: REQUIREMENT_SCHEMA });
-// Output: { type, goal, acceptanceCriteria, scope, constraints, successMetrics, questions }
-
-writeActiveTask("## Requirement", requirement);
-appendObservation("task", { doneCriteria: "requirement schema populated with AC, scope, constraints" });
+```
+// 1. Check latest task-log for ## Deferred; if non-empty prompt "Inherit N deferred issues as AC candidates? (y/n)"
+// 2. Guard: warn if ## Requirement already populated (don't silently overwrite)
+// 3. Self-inject user input; generate requirement schema (type, goal, AC, scope, constraints, metrics, questions)
+// 4. Write to ACTIVE_TASK.md → ## Requirement
+// 5. Append Observation block
 ```
 
 ## Observation Block
@@ -83,8 +76,20 @@ Append after writing `## Requirement`:
 Writes structured task definition to `ACTIVE_TASK.md → ## Requirement`:
 - Task type, goal, acceptance criteria, scope, constraints, success metrics, questions
 
+## Deferred Findings Check
+
+At start of every invocation, check the most recent file in `task-log/` for a `## Deferred` section.
+
+- If `## Deferred` is non-empty: surface prompt before writing requirement:
+  > "Previous task deferred N issues — inherit as AC candidates? (y/n)"
+  > [list deferred items]
+  - If yes: prepend as candidate ACs in the new requirement (developer can edit/drop any)
+  - If no: proceed without them
+- If `## Deferred` is empty or no task-log exists: skip silently.
+
 ## Checklist
 
+- [ ] Check latest task-log for ## Deferred; surface y/n prompt if non-empty
 - [ ] Check ACTIVE_TASK.md → ## Requirement — warn if already populated (don't silently overwrite)
 - [ ] Extract task type (feature/bugfix/refactor/other)
 - [ ] Identify goal vs. implementation details

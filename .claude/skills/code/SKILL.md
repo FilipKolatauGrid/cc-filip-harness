@@ -19,11 +19,14 @@ Generate implementation code from the system design: create files, wire componen
 
 ## Prerequisites
 
-Reads: `ACTIVE_TASK.md` → `## Design`
+Reads: `ACTIVE_TASK.md` → `## Design` (stop at next `##`) and `## Requirement` (stop at next `##`). Do NOT read full ACTIVE_TASK.md.
 Writes: project filesystem + `ACTIVE_TASK.md` → `## Implementation Log`
 
 **Hard block:** If `## Design` is empty:
 > "Run `design` first. Output required in ACTIVE_TASK.md → ## Design."
+
+**Hard block:** If `## Risks` Observation block does not contain `planning-gate: confirmed`:
+> "Planning gate not confirmed. Run `risk` and confirm the planning summary before proceeding to `code`."
 
 ## Agent Delegation
 
@@ -55,35 +58,12 @@ Self-inject from `ACTIVE_TASK.md → ## Design`: extract `components`, `dataMode
 
 ## Pattern
 
-```javascript
-const design = readActiveTask("## Design");
-const requirement = readActiveTask("## Requirement");
-if (!design) hardBlock("design");
-
-// Verify AC coverage before coding
-const unmatched = requirement.acceptanceCriteria.filter(ac => !design.components.some(c => covers(c, ac)));
-if (unmatched.length > 0) {
-  warn(`These ACs have no matching component: ${unmatched.join(", ")}. Update design before coding.`);
-}
-
-const codebaseMap = isGreenfield ? null : await agent("code — locate files for: " + design.components.join(", "), {
-  agentType: "sdlc-investigator",
-  label: "investigate:pre-code"
-});
-
-const plan = await agent(planningMetaPrompt(design, codebaseMap), { schema: FILE_PLAN_SCHEMA });
-
-for (const file of plan.files) {
-  await agent(implementationMetaPrompt(file, design, requirement.acceptanceCriteria), { schema: CODE_SCHEMA });
-}
-
-appendToActiveTask("## Implementation Log", {
-  filesCreated: plan.files.map(f => f.path),
-  status: "initial-implementation",
-  deviations: [],
-  nextStep: "tdd"
-});
-appendObservation("code", { doneCriteria: "all files created/modified, no TODOs, syntax-checks pass" });
+```
+// 1. Hard-block: Design empty, planning-gate: confirmed absent from Risks Observation
+// 2. Self-inject: components + AC from ## Design + ## Requirement; warn on unmapped ACs
+// 3. Spawn sdlc-investigator (existing projects); derive create-vs-modify list
+// 4. Generate files in dependency order; no TODOs, no placeholders
+// 5. Append Implementation Log + Observation block (files-touched, ac-coverage-verified)
 ```
 
 ## Observation Block

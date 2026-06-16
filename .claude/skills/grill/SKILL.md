@@ -17,7 +17,8 @@ Relentless interactive ADR session. Walk every branch of the design tree. One de
 
 ## Prerequisites
 
-Reads: `ACTIVE_TASK.md` → `## Design` and existing codebase patterns
+Reads: `ACTIVE_TASK.md` → `## Design` (stop at next `##`) and `## Requirement` (stop at next `##`). Do NOT read full ACTIVE_TASK.md.
+Also reads: existing codebase patterns (for Phase 0 classification).
 Writes: `ACTIVE_TASK.md` → `## ADRs`
 
 **Hard block:** If `## Design` is empty:
@@ -36,20 +37,26 @@ Writes: `ACTIVE_TASK.md` → `## ADRs`
 ## Session Flow
 
 ```
-Before first question:
-  - Read ACTIVE_TASK.md → ## Design (and ## Requirement for constraints)
-  - Scan codebase for existing patterns relevant to the design
+Phase 0 — Batch classify (runs BEFORE any questions):
+  - Read ACTIVE_TASK.md → ## Design and ## Requirement
+  - Scan codebase for patterns relevant to design components
   - Map ALL decision points across the full design tree
   - Order by dependency (foundational first)
-  - Note which can be answered from codebase → skip or pre-answer those
+  - Classify each decision:
+      codebase-resolvable = answer derivable SOLELY from existing file content,
+                            requires zero product or UX judgment.
+                            Example: "which API prefix?" → read existing routes.
+      human-required      = needs dev judgment on UX, product, business logic, or
+                            any constraint not in the codebase.
+                            Example: "how many items per page?" → no code answer.
+  - Show codebase-resolvable decisions as a numbered list with proposed answers:
+      "N decisions resolved from codebase — confirm all or override any: [list]"
+  - STOP. Wait for developer to confirm or override.
 
-For each decision:
-  a. If codebase resolves it: state "Resolved from codebase: [finding]. Recording as ADR." No question asked.
-  b. Otherwise: present numbered options + recommendation (see format below)
-  c. STOP. Wait for developer response.
-  d. Developer replies with a number (or custom choice)
-  e. "Recorded: [choice]. [Consequence note if non-obvious.]"
-  f. Move to next decision immediately
+Phase 1 — Individual human-required decisions:
+  - For each human-required decision: present options + recommendation (see format)
+  - STOP after each. Wait for developer response.
+  - Acknowledge pick in one line, move to next immediately.
 
 After ALL decisions:
   - Write all ADRs to ACTIVE_TASK.md → ## ADRs in one pass
@@ -58,7 +65,7 @@ After ALL decisions:
   - "Next: run `risk`"
 ```
 
-**One question per message. Never batch multiple decisions.**
+**One question per message in Phase 1. Never batch human-required decisions.**
 
 ## Question Format
 
@@ -129,16 +136,16 @@ Append after writing `## ADRs`:
 
 ## Checklist
 
-- [ ] Read ACTIVE_TASK.md → ## Design and ## Requirement; hard block if Design empty
+- [ ] Read ACTIVE_TASK.md → ## Design (stop at next ##) and ## Requirement (stop at next ##); hard block if Design empty
 - [ ] Check Design Observation block — hard block if missing or shows no completion evidence
-- [ ] Scan codebase for existing patterns that resolve decisions preemptively
-- [ ] Map full decision tree; order by dependency
-- [ ] For each decision: check codebase first → if resolved, record and skip; else present options + recommendation, STOP
+- [ ] Phase 0: scan codebase, classify ALL decisions as codebase-resolvable or human-required
+- [ ] Phase 0: show all codebase-resolvable decisions as a group with proposed answers; wait for confirm/override
+- [ ] Phase 1: for each human-required decision: present options + recommendation; STOP; wait for response
 - [ ] After each pick: acknowledge in one line, move to next immediately
 - [ ] Cover all branches: stack, interfaces, data model, errors, auth, observability, deployment
 - [ ] Write ADRs in one pass to ACTIVE_TASK.md → ## ADRs
 - [ ] Append ADRs LOCKED sentinel
-- [ ] Append Observation block
+- [ ] Append Observation block (include decisions-from-codebase and decisions-from-developer counts)
 - [ ] Next: run `risk`
 
 ---
