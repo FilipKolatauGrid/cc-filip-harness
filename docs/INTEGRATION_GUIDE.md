@@ -68,9 +68,11 @@ Session init: read `docs/SKILL_REGISTRY.md`, then `ACTIVE_TASK.md`.
 Load `.claude/context/BE_CONTEXT.md` and/or `FE_CONTEXT.md` if they exist.
 
 Skills: /task /init /design /grill /risk /code /tdd /refactor /tests /coverage /verify /review /audit /deploy /ship /close
+Meta: /validate-harness /local-env-requirements
 
 State: ACTIVE_TASK.md (one section per phase, hard-gated)
 Archive: task-log/YYYYMMDD-[TYPE]-slug.md after each /close
+Reference: docs/HARNESS_REFERENCE.md (schema template + file map)
 ```
 
 ---
@@ -81,12 +83,17 @@ The harness requires these files at your project root:
 
 ```
 .claude/
-  skills/         ← 16 skill dirs (each with SKILL.md — /task /init /design /grill /risk /code /tdd /refactor /tests /coverage /verify /review /audit /deploy /ship /close)
+  skills/         ← 18 skill dirs (each with SKILL.md)
+                    SDLC: task/ init/ design/ grill/ risk/ code/ tdd/ refactor/
+                          tests/ coverage/ verify/ review/ audit/ deploy/ ship/ close/
+                    Meta: validate-harness/ local-env-requirements/
+                    CLAUDE.md  ← skill authoring convention
   agents/         ← sdlc subagents (spawned by skills, not invoked directly)
   workflows/      ← 4 workflow files
-  hooks/          ← 5 automation hooks (wired in settings.local.json)
+  hooks/          ← 6 automation hooks (wired in settings.local.json)
   context/        ← empty dir (populated by /close)
-ACTIVE_TASK.md    ← empty schema (reset after each /close)
+reports/          ← empty dir (populated by /validate-harness)
+ACTIVE_TASK.md    ← empty schema with <!-- Status: idle --> sentinel (reset after each /close)
 CLAUDE.md         ← session init instructions
 task-log/         ← empty dir (populated by /close)
 ```
@@ -105,6 +112,7 @@ The harness ships with 5 hooks in `.claude/hooks/`. The Claude Code hooks (1–4
 | `phase-gate.sh` | `PreToolUse(Bash)` | Blocks out-of-order skill invocations (exit 2) |
 | `secops-scan.sh` | `PostToolUse(Write\|Edit)` | Async secret/vuln scan on source files during implementation |
 | `verify-fail-capture.sh` | `UserPromptSubmit` | Injects prior `/verify` FAIL blockers on retry |
+| `harness-change-detect.sh` | `PostToolUse(Write\|Edit)` | Fires when a harness file is edited; reminds session to run `/validate-harness` |
 
 These fire automatically when Claude Code loads `.claude/settings.local.json` from the project root — no extra setup.
 
@@ -260,7 +268,10 @@ Your `task-log/`, `.claude/context/`, and `ACTIVE_TASK.md` are project-local —
 → Run `/design`. Skills gate on prior phase output.
 
 **Skills not found (`/task`, `/design`, etc.)**
-→ Ensure `.claude/skills/` exists at your project root with all 16 skill directories. Claude Code discovers skills from `.claude/skills/<name>/SKILL.md`. If missing, copy from the harness repo.
+→ Ensure `.claude/skills/` exists at your project root with all 18 skill directories. Claude Code discovers skills from `.claude/skills/<name>/SKILL.md`. If missing, copy from the harness repo.
+
+**Want to verify harness health after integration?**
+→ Run `/validate-harness`. It scores the harness against 32 checks across 7 sections and writes a report to `reports/harness-validation-report.md`. Target: ≥ 85% (Solid band). The `harness-change-detect.sh` hook will remind you to re-run it whenever you modify harness files.
 
 **ACTIVE_TASK.md grew too large**
 → Run `/close` to archive and reset. Each task should have its own cycle.

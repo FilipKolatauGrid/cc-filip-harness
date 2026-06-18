@@ -106,6 +106,7 @@ Self-inject full `ACTIVE_TASK.md` content.
 - [ ] Wait for context agents to complete before reset
 - [ ] Reset ACTIVE_TASK.md to empty fixed schema
 - [ ] Confirm reset: read back ACTIVE_TASK.md — verify all sections empty
+- [ ] If shipped feature changes user-facing behavior: update README.md and relevant docs/ files before regenerating context
 - [ ] Commit: task-log/ + context updates + ACTIVE_TASK.md reset
 - [ ] Next: `ship` (if still deploying) or `task` (next task)
 

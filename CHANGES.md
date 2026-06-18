@@ -1,3 +1,236 @@
+# task: Human-in-the-Loop Requirements (Clarification Session)
+
+**Date:** 2026-06-18
+**Scope:** `.claude/skills/task/SKILL.md` — interactive DoR/DoD clarification built into requirements intake
+
+---
+
+## What Changed
+
+### Interactive Clarification Session in `/task`
+
+**Before:** `task` parsed user input into a structured schema and wrote one block to `## Requirement`. No interactive back-and-forth during intake. Ambiguities surfaced passively in a `questions` field — developer had to notice and act on them.
+
+**After:** After writing the structured requirement, `task` identifies DoR/DoD gaps and asks them **one at a time** in grill-style format before finalising the requirement. Each question presents numbered options with pros/cons and a recommendation. Developer picks an option or gives a custom answer. Skill stops after each question and waits.
+
+**Motivation:** Requirements built without human confirmation compound errors through all downstream phases. Getting the requirement right before design is cheaper than fixing it after code. The `task` skill is the highest-leverage point for human input.
+
+### Three-Block Output (was one block)
+
+`## Requirement` now contains three ordered sub-blocks:
+
+1. `### Initial Request` — verbatim user input, unmodified. Never parsed or edited.
+2. `### Structured Requirement` — parsed schema (type, goal, AC, scope, constraints, metrics).
+3. `### Clarification Outcomes` — one entry per Q&A: question asked + developer's answer + impact on the requirement.
+
+This makes the requirement section self-contained: anyone reading it can see the raw input, the parsed interpretation, and every clarification decision that shaped it.
+
+### DoR/DoD Scope Table — Allowed vs Forbidden
+
+The skill includes an explicit table separating what belongs in `task` clarification from what belongs in `design`/`grill`:
+
+| Allowed (requirement-level) | Forbidden (belongs to design/grill) |
+|---|---|
+| Who is the end user? | Which database/store to use? |
+| What does "done" look like? | Which library or framework? |
+| Hard deadlines or SLAs? | Error handling strategy? |
+| Which existing systems does this integrate with? | API design or schema shape? |
+| Compliance or regulatory constraints? | Retry/fallback policies? |
+| Acceptable failure behavior from user's perspective? | Deployment or infrastructure choices? |
+
+Technical gaps are **skipped** — not asked. They surface naturally in `design`/`grill`.
+
+### Observation Block Updated
+
+```
+### Observation
+- phase: intake/task
+- done-signal: schema-populated
+- done-criteria: acceptanceCriteria non-empty, scope defined, successMetrics measurable, clarification-outcomes present (or 0 gaps found)
+- clarifications-asked: N
+- verdict-source: self-reported
+```
+
+`clarifications-asked: N` lets downstream skills and `close` know how many requirement decisions were validated by the developer.
+
+---
+
+## What Did NOT Change
+
+- Section name (`## Requirement`) — unchanged; phase gates still work
+- Downstream skill reads — all read `## Requirement`; sub-blocks are additive, not structural changes
+- `grill` scope — still handles technical/implementation decisions. `task` clarification is requirement-level only
+- Observation signal (`schema-populated`) — unchanged; `clarifications-asked` is a new field, not a new signal
+
+---
+
+## File Inventory
+
+**Modified (1 file):**
+```
+.claude/skills/task/SKILL.md    three-block output, clarification session, DoR/DoD scope table, updated pattern + checklist + example
+```
+
+---
+
+# Harness Cycle 3: Refactor + Skill Expansion + Observability Hook
+
+**Date:** 2026-06-17
+**Scope:** 2 new skills, 5 new files, 7 file edits — CLAUDE.md trim, documentation layer, harness self-measurement
+
+---
+
+## What Changed
+
+### 1. Two New Skills Added
+
+#### `validate-harness` (Meta/Utility)
+
+A standalone, read-only diagnostic skill that scores the harness against a 32-check, 7-section foundational checklist and writes a structured report to `reports/harness-validation-report.md`.
+
+Key design decisions vs. the source specification:
+- Auto-detects `HARNESS_TYPE = prompt-harness` (SKILL.md files present, no source files at root) → marks B1–B5 as `N/A` instead of FAIL. The original spec evaluated language-agnostic harnesses the same as application repos, producing misleading scores.
+- Observation block written inside the report file, not ACTIVE_TASK.md — this skill has no SDLC phase context.
+- Not phase-gated (no ACTIVE_TASK.md hard-blocks) — runs against any harness state, idle or active.
+
+Trigger: `/validate-harness` (explicit user invocation only).
+
+#### `local-env-requirements` (Planning Phase)
+
+Produces a requirements specification for a containerized local development environment. Documents **what** the environment must provide — not **how** to implement it. No Dockerfiles, no docker-compose.yml generated.
+
+Fits in the planning phase (after `/task`, alongside or before `/design`). Reads existing project docs (CLAUDE.md, docs/techstack.md, docs/dependencies.md, docs/architecture.md) to derive what must be containerized vs. left on the host. Writes:
+- `docs/local-environment.md` — full requirements spec
+- `CLAUDE.md` — short Getting Started pointer (preserves existing content)
+- `docs/architecture.md` — local dev section (creates file if missing)
+- `ACTIVE_TASK.md → ## Design` — deliverable summary + Observation block
+
+Both skills registered in `docs/SKILL_REGISTRY.md` and `CLAUDE.md` File Map.
+
+---
+
+### 2. CLAUDE.md Trimmed to 134 Lines (was 193)
+
+**Before:** 193 lines. ACTIVE_TASK.md schema template (~30 lines) and File Map (~25 lines) inlined.
+
+**After:** 134 lines. Both extracted to `docs/HARNESS_REFERENCE.md`. Replaced with single-line links.
+
+Agent instruction files should stay under 150 lines — every line loaded every session.
+
+---
+
+### 3. E3 Single-Task Constraint Made Explicit
+
+`## Forbidden` entry updated from:
+> "Starting a new task without resetting ACTIVE_TASK.md"
+
+To:
+> "Starting a new task without resetting ACTIVE_TASK.md (one active task per session; `task` warns on non-empty state)"
+
+The constraint was implied but not explicit. Phase-gate.sh already enforces it at the tool layer; CLAUDE.md now states it as a named rule.
+
+---
+
+### 4. Documentation Layer Added
+
+Three new files:
+
+**`docs/HARNESS_REFERENCE.md`** — extracted schema template + full annotated file map (includes new hooks, reports/ dir, .claude/skills/CLAUDE.md). The `<!-- Status: idle -->` sentinel is part of the canonical template.
+
+**`docs/ARCHITECTURE.md`** — component model (ASCII diagram), full SDLC data flow diagram, and design rationale for four key decisions:
+- Why Markdown prompts over code
+- Why flat ACTIVE_TASK.md over a database
+- Why Observation blocks
+- Why agent delegation over inline skill logic
+
+**`.claude/skills/CLAUDE.md`** — skill authoring convention for agents navigating the skills directory. Contains the 8-step pattern, Observation block field reference, phase gate contract table, and instructions for adding a new skill. Addresses validator finding F3 (no hierarchical instruction files).
+
+---
+
+### 5. `ACTIVE_TASK.md` Idle Sentinel
+
+Added `<!-- Status: idle -->` to the canonical ACTIVE_TASK.md schema template and to the live file. Allows tooling (and skills) to distinguish "initialized schema, no active task" from "uninitialized file". Canonical template in `docs/HARNESS_REFERENCE.md` includes the sentinel.
+
+---
+
+### 6. `close/SKILL.md` — Doc Update Checklist Step
+
+Added to the close checklist:
+> "If shipped feature changes user-facing behavior: update README.md and relevant docs/ files before regenerating context"
+
+Previously this expectation existed only implicitly (close regenerates context). Now explicit in the checklist.
+
+---
+
+### 7. `harness-change-detect.sh` Hook + Settings Wiring
+
+New hook: `.claude/hooks/harness-change-detect.sh`
+
+Fires async on every Write/Edit tool call. Checks if the written file is a harness file:
+- `CLAUDE.md`
+- `.claude/skills/*/SKILL.md`, `.claude/skills/CLAUDE.md`
+- `.claude/agents/*.md`
+- `.claude/workflows/*.md`
+- `.claude/hooks/*.sh`
+- `docs/SKILL_REGISTRY.md`, `docs/HARNESS_REFERENCE.md`, `docs/ARCHITECTURE.md`, `docs/META_PROMPTING.md`
+
+If yes, emits:
+```
+HARNESS CHANGE DETECTED: <filename> modified.
+Run /validate-harness to measure the impact of this change on harness score.
+```
+
+This closes the feedback loop: every harness modification prompts measurement. The validator is no longer a one-time diagnostic — it's a CI-equivalent check triggered by the hook.
+
+Wired in `.claude/settings.local.json` as a second async PostToolUse hook alongside `secops-scan.sh`.
+
+---
+
+### 8. `.editorconfig` Added
+
+Minimal editor config: UTF-8, LF line endings, 2-space indent for `.md`/`.json`, 4-space for `.sh`. Includes `# Shell scripts: validate with shellcheck` convention note.
+
+---
+
+## What Did NOT Change
+
+- Phase order — all workflows unchanged
+- ACTIVE_TASK.md schema — same 9 sections (idle sentinel is a comment, not a section)
+- All 16 SDLC SKILL.md files — no logic changes
+- Agent definitions — sdlc-investigator, sdlc-reviewer, sdlc-secops, sdlc-context-builder unchanged
+- Observation block protocol — format unchanged
+- Phase gate logic in phase-gate.sh — unchanged
+
+---
+
+## File Inventory
+
+**Created (7 files):**
+```
+.claude/skills/validate-harness/SKILL.md
+.claude/skills/local-env-requirements/SKILL.md
+.claude/skills/CLAUDE.md
+.claude/hooks/harness-change-detect.sh
+docs/HARNESS_REFERENCE.md
+docs/ARCHITECTURE.md
+.editorconfig
+```
+
+**Modified (9 files):**
+```
+CLAUDE.md                         trimmed 193→134 lines; E3 explicit; template+filemap extracted
+ACTIVE_TASK.md                    <!-- Status: idle --> sentinel added
+.claude/skills/close/SKILL.md     doc-update checklist step added
+.claude/settings.local.json       harness-change-detect hook wired (6th hook)
+docs/SKILL_REGISTRY.md            two new skills in table; Reference Documents section added
+docs/INTEGRATION_GUIDE.md         18 skills, 6 hooks, /validate-harness troubleshooting note
+docs/META_PROMPTING.md            Skill Structure Template updated (commands→skills path, current format)
+README.md                         new skills, hooks, structure, status
+CHANGES.md                        this entry
+```
+
+---
+
 # Harness Cycle 2: Token Reduction + HITL Gates + Deferred Findings
 
 **Date:** 2026-06-16

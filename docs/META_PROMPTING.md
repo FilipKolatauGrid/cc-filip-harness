@@ -140,44 +140,58 @@ const prompt = evaluateTemplate(metaPrompt, {
 
 ## Skill Structure Template
 
-Each skill follows this structure:
+Each skill lives at `.claude/skills/<name>/SKILL.md` and follows this structure:
 
-```javascript
-// .claude/commands/skill-name.md
-
+```markdown
 ---
 name: skill-name
-description: What this skill does
-metadata:
-  type: skill
-  triggers: ["when user says X", "when condition Y"]
+description: >
+  What this skill does — written to be "pushy" (includes trigger phrases,
+  over-triggers rather than under-triggers so Claude Code auto-invokes correctly).
+user-invocable: true|false
+allowed-tools: Bash, Read, Write, ...
 ---
 
-# Meta-Prompt
+# Skill Title
 
-Given:
-- {input_1}
-- {input_2}
-...
+One sentence: what this skill does and why.
 
-Generate:
-- {output_1}
-- {output_2}
-...
+## Principles in Play
 
-# Pattern
+Which AI-native engineering principles this skill enforces, and how.
 
-[Implementation pattern]
+## Prerequisites
 
-# Example
+Reads: [section(s) of ACTIVE_TASK.md or files]
+Writes: [section(s) of ACTIVE_TASK.md or files]
+Hard block conditions.
 
-[Real usage example]
+## Meta-Prompt
 
-# Checklist
+Self-injection pattern: which fields extracted from upstream, what analyzed, what generated.
 
-- [ ] Item 1
-- [ ] Item 2
+## Pattern
+
+// 1. Hard-block guard
+// 2. Self-inject from required sections
+// 3. Generate output
+// 4. Write to ACTIVE_TASK.md section
+// 5. Append Observation block
+
+## Observation Block
+
+Exact Observation block the skill appends, with all required fields.
+
+## Checklist
+
+- [ ] ...
+- [ ] Write output to ACTIVE_TASK.md → ## <Section>
+- [ ] Append Observation block
+
+*Next: `next-skill` (context).*
 ```
+
+See `.claude/skills/CLAUDE.md` for the complete skill authoring convention and the 8-step execution pattern.
 
 ---
 
