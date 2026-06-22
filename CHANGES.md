@@ -1,3 +1,171 @@
+# Tech-Stack Agnostic Detection Layer + Adaptive Verification
+
+**Date:** 2026-06-22
+**Scope:** 2 new hooks, 1 skill update, 5 doc updates, 1 settings update, 1 gitignore update
+
+---
+
+## What Changed
+
+### 1. `stack-detect.sh` — SessionStart Hook (B1–B5)
+
+New hook: `.claude/hooks/stack-detect.sh`
+
+Fires synchronously at every session start alongside `load-context.sh`. Inspects the repo root and writes `.claude/stack-profile.json` with detected tech stack. Injects a one-line stack summary into the context window via `additionalContext`.
+
+**Detection coverage (B1–B5):**
+
+| Section | What it detects | Indicators |
+|---------|-----------------|-----------|
+| B1 — Package manager | npm / yarn / pnpm / pip / poetry / cargo / go / maven / gradle / bundler | `package.json`, `pnpm-lock.yaml`, `yarn.lock`, `requirements.txt`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `pom.xml`, `build.gradle`, `Gemfile` |
+| B2 — Entry points + start command | `scripts.dev` or `scripts.start` in `package.json`; `main.py`, `app.py`, `manage.py`, `cmd/` | Files at repo root and `src/` |
+| B3 — Test runner | jest / vitest / mocha / pytest / go-test / cargo-test / junit | Grep of `package.json` deps; `pytest.ini`, `conftest.py` |
+| B4 — Lint / type-check / shellcheck | eslint, ruff, flake8, go vet, cargo clippy; tsc, mypy, pyright; shellcheck binary | `.eslintrc*`, `eslint.config.*`, `.ruff.toml`, `[tool.ruff]`, `.flake8`, `tsconfig.json`, `mypy.ini`, `[tool.mypy]`; `command -v shellcheck` |
+| B5 — Verify chain | Ordered array: lint → typecheck → test → shellcheck | Built from above detections |
+
+**Stack profile schema** (`.claude/stack-profile.json`):
+```json
+{
+  "detected_at": "<ISO timestamp>",
+  "package_manager": "npm|pip|cargo|go|...|unknown",
+  "install_cmd": "npm install | pip install -r requirements.txt | ...",
+  "start_cmd": "npm run dev | python main.py | ...",
+  "test_runner": "jest|vitest|pytest|go-test|...",
+  "test_cmd": "npm test | pytest | go test ./... | ...",
+  "lint_cmd": "npm run lint | ruff check . | go vet ./... | ...",
+  "typecheck_cmd": "npx tsc --noEmit | mypy . | ...",
+  "shellcheck_available": true|false,
+  "verify_chain": ["lint", "typecheck", "test", "shellcheck"],
+  "entry_points": ["src/index.ts", "main.py"]
+}
+```
+
+Non-blocking (exit 0 always). Re-runs and overwrites profile every session (stack can change). Profile excluded from git.
+
+**Cross-platform:** POSIX bash + python3 stdlib (no pip installs). Windows requires WSL2 or Git Bash.
+
+---
+
+### 2. `adaptive-verify.sh` — PostToolUse Hook (B3+B4)
+
+New hook: `.claude/hooks/adaptive-verify.sh`
+
+Fires asynchronously after every Write or Edit tool call. Reads `.claude/stack-profile.json` and runs targeted checks based on the changed file's extension and path. Non-blocking — emits warnings only.
+
+**Check logic:**
+
+| File type | Check |
+|-----------|-------|
+| `*.sh` (any path) | Run `shellcheck -f gcc` if available; advisory to install if not |
+| `*.sh` in `.claude/hooks/` | Same + always shows advisory if shellcheck absent |
+| `*.ts`, `*.tsx`, `*.js`, `*.jsx` | Emit lint reminder (`lint_cmd`) + typecheck reminder (`typecheck_cmd`) |
+| `*.spec.*`, `*.test.*` | Emit targeted test reminder (`test_cmd <file>`) |
+| `*.py` | Emit lint reminder; typecheck reminder if configured |
+| `test_*.py`, `*_test.py` | Emit targeted test reminder |
+| `*.go` | `go vet ./... && go test ./...` reminder |
+| `*.rs` | `cargo clippy && cargo test` reminder |
+| `package.json`, `requirements.txt`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `Gemfile`, `pom.xml` | B1 install reminder (`install_cmd`) |
+
+Skips `.git/`, `node_modules/`, `__pycache__/`, `target/`, `.cache/`. Skips silently if `stack-profile.json` absent.
+
+**Motivation:** Without this hook, a developer edits a `.sh` hook file and gets no feedback until manually running shellcheck. Editing TypeScript produced no inline lint signal. The hook closes the feedback loop at the file-save layer without adding a blocking step.
+
+---
+
+### 3. `init/SKILL.md` — B1–B5 Stack Detection Integration
+
+Updated: `.claude/skills/init/SKILL.md`
+
+After scaffold files are written, `init` now:
+1. Runs `bash .claude/hooks/stack-detect.sh` (or reads existing profile from the SessionStart run)
+2. Reads `.claude/stack-profile.json`
+3. Appends a `### Stack Profile` subsection to `## Requirement` with B1–B5 findings
+
+Output format appended to `## Requirement`:
+```markdown
+### Stack Profile
+- B1 package-manager: <pm> — install: `<install_cmd>`
+- B2 start: `<start_cmd>` — entry points: [<list>]
+- B3 test-runner: <test_runner> — run: `<test_cmd>`
+- B4 lint: `<lint_cmd>` | typecheck: `<typecheck_cmd>` | shellcheck: <true|false>
+- B5 verify-chain: [<ordered chain>]
+```
+
+Observation block `done-criteria` updated to include `stack-profile.json written`.
+
+---
+
+### 4. `settings.local.json` — New Hooks Wired
+
+Two new hook entries added:
+
+**SessionStart** (alongside `load-context.sh`):
+```json
+{ "type": "command", "command": "...stack-detect.sh", "timeout": 10, "statusMessage": "Detecting tech stack..." }
+```
+
+**PostToolUse / Write|Edit** (alongside `secops-scan.sh` and `harness-change-detect.sh`):
+```json
+{ "type": "command", "command": "...adaptive-verify.sh", "timeout": 30, "async": true }
+```
+
+Hook count: 5 → 7 Claude Code hooks (8 total including `pre-commit.template`).
+
+---
+
+### 5. Documentation Updates
+
+**`CLAUDE.md`** — Added explicit skills directory pointer near "How to Use":
+> `Skills live in .claude/skills/ — one subdirectory per skill, each with a SKILL.md. Full index: docs/SKILL_REGISTRY.md.`
+This fixes the F2 PARTIAL finding from `/validate-harness` (98% → would score 100% on re-run).
+
+**`docs/SKILL_REGISTRY.md`** — New **Hooks** section with full table of all 8 hooks (event, blocking/async, purpose). `init` row updated to reflect B1–B5 `### Stack Profile` write. Stack profile note added.
+
+**`docs/HARNESS_REFERENCE.md`** — File Map updated: `stack-detect.sh`, `adaptive-verify.sh` added to hooks section; `pre-commit.template` made explicit; `stack-profile.json` added as gitignored session artifact.
+
+**`docs/INTEGRATION_GUIDE.md`** — Hooks count 5→7 throughout; hooks table updated with two new rows; Minimum File Set updated (6→8 hooks); Per-Stack Setup section now leads with automatic detection coverage table; `.gitignore` recommendations updated with `stack-profile.json`.
+
+**`docs/ARCHITECTURE.md`** — Hooks component description updated (count + capabilities). New design decision: "Why tech-stack detection at the hook layer, not in skills?" (rationale: profile available before first skill invocation). Local development prerequisites updated: added Python 3 (for hook JSON parsing), shellcheck (optional), WSL2/Git Bash note for Windows.
+
+**`.gitignore`** — Added `.claude/stack-profile.json` (session artifact, not committed).
+
+---
+
+## What Did NOT Change
+
+- Phase order — all workflows unchanged
+- ACTIVE_TASK.md schema — unchanged
+- All other SKILL.md files — no logic changes
+- Agent definitions — unchanged
+- Observation block protocol — format unchanged
+- Phase gate logic in `phase-gate.sh` — unchanged
+- Harness validation score — 98% → no regression (F2 gap fixed by CLAUDE.md update)
+
+---
+
+## File Inventory
+
+**Created (3 files):**
+```
+.claude/hooks/stack-detect.sh           SessionStart: B1–B5 detection, writes stack-profile.json
+.claude/hooks/adaptive-verify.sh        PostToolUse: targeted lint/typecheck/shellcheck per file type
+reports/harness-validation-report.md    /validate-harness output (98% Solid)
+```
+
+**Modified (7 files):**
+```
+.claude/skills/init/SKILL.md    B1–B5 stack detection section, checklist items, updated obs criteria
+.claude/settings.local.json     stack-detect + adaptive-verify hooks wired (5→7 Claude Code hooks)
+.gitignore                      .claude/stack-profile.json excluded
+CLAUDE.md                       skills dir pointer added (F2 fix)
+docs/SKILL_REGISTRY.md          new Hooks table, init row updated
+docs/HARNESS_REFERENCE.md       file map updated (new hooks + stack-profile.json)
+docs/INTEGRATION_GUIDE.md       hook count, table, per-stack detection table, gitignore rec
+docs/ARCHITECTURE.md            hooks description, new design decision, local dev prereqs
+```
+
+---
+
 # task: Human-in-the-Loop Requirements (Clarification Session)
 
 **Date:** 2026-06-18
