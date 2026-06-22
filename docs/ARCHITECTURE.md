@@ -39,7 +39,9 @@ Four agents: `sdlc-investigator` (locate), `sdlc-reviewer` (diff review),
 
 **Hooks** — shell scripts wired into Claude Code's hook system. Run automatically
 on tool calls and session events. Enforce rules the instruction file cannot enforce
-alone (e.g., phase gates at the tool-execution layer, async security scans).
+alone (e.g., phase gates at the tool-execution layer, async security scans, tech-stack
+detection, and adaptive file-level verification). Eight hooks total: two at SessionStart,
+one PreToolUse gate, four async PostToolUse, one UserPromptSubmit.
 
 **ACTIVE_TASK.md** — the state machine. Fixed nine-section schema. One section
 per SDLC phase. Skills read their upstream section and write their own. Only
@@ -129,6 +131,18 @@ Four operations are expensive on the main context window: file discovery
 and context snapshot generation (`sdlc-context-builder`). Delegating to sub-agents keeps
 each skill's context small and allows parallel execution where the work is independent.
 
+### Why tech-stack detection at the hook layer, not in skills?
+
+Stack detection (`stack-detect.sh`) runs at SessionStart before any skill is invoked.
+This means the stack profile is always available — skills, agents, and `adaptive-verify.sh`
+can all consume it without knowing when or how detection happened. Running it in a skill
+would make the profile only available after that skill runs, breaking any earlier consumer.
+
+The adaptive verification hook (`adaptive-verify.sh`) uses the profile to run the right
+checks for each file type without hardcoding any toolchain — if a project uses `vitest`
+instead of `jest`, the profile reflects that and the hook emits the correct command. This
+keeps the harness stack-agnostic at the automation layer, not just the prompt layer.
+
 ---
 
 ## Local Development Environment
@@ -140,7 +154,9 @@ to start.
 What a developer does need locally:
 - **Claude Code CLI** — the runtime that executes skills
 - **Git** — for task archival and context tracking
-- **Bash** — for hook execution (hooks/*.sh)
+- **Bash** — for hook execution (hooks/*.sh); Windows: WSL2 or Git Bash required
+- **Python 3** — used by hooks for JSON parsing (stdlib only, no pip installs needed)
+- **shellcheck** (optional) — if present, `adaptive-verify.sh` lints `.sh` files on save
 - **Docker** (optional) — only if the *project being developed with the harness* requires it
 
 For projects using the harness that DO have a local environment, use `/local-env-requirements`

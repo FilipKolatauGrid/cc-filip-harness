@@ -45,7 +45,7 @@ Downstream skills that gate on a prior phase read the Observation block — not 
 | Skill | Phase | File | Trigger | Reads | Writes | Key Observation Signal |
 |-------|-------|------|---------|-------|--------|----------------------|
 | `task` | Intake | `.claude/skills/task/SKILL.md` | Start any task | latest task-log `## Deferred` (if exists) | `## Requirement` (3 sub-blocks: Initial Request → Structured Requirement → Clarification Outcomes) | schema-populated + clarifications-asked:N |
-| `init` | Intake | `.claude/skills/init/SKILL.md` | Greenfield scaffold | `## Requirement` | `## Requirement` (scaffold) | filesystem-written |
+| `init` | Intake | `.claude/skills/init/SKILL.md` | Greenfield scaffold | `## Requirement` | `## Requirement` (scaffold + B1–B5 `### Stack Profile`) | filesystem-written |
 | `design` | Planning | `.claude/skills/design/SKILL.md` | Design system | `## Requirement` | `## Design` | schema-populated |
 | `grill` | Planning | `.claude/skills/grill/SKILL.md` | Stress-test decisions | `## Design` (scoped) | `## ADRs` | adrs-locked-sentinel-present |
 | `risk` | Planning | `.claude/skills/risk/SKILL.md` | Identify risks | `## Design` + `## ADRs` (scoped, locked) | `## Risks` + planning-gate | schema-populated + planning-gate:confirmed |
@@ -88,6 +88,25 @@ Spawned by skills — not invoked directly.
 | `sdlc-reviewer` | `review` | sonnet | Diff review anchored to acceptance criteria + design contracts — severity-tagged findings |
 | `sdlc-secops` | `review`, `audit`, `deploy` | haiku | Fast secrets/vuln/compliance pattern scan — CLEAR / FINDINGS_REQUIRE_FIX / CRITICAL_BLOCK |
 | `sdlc-context-builder` | `close` | sonnet | Generates/updates `.claude/context/FE_CONTEXT.md` and `BE_CONTEXT.md` from changed files |
+
+---
+
+## Hooks
+
+Shell scripts in `.claude/hooks/`, wired in `.claude/settings.local.json`. Run automatically — not invoked by users.
+
+| Hook | Event | Blocking | Purpose |
+|------|-------|----------|---------|
+| `load-context.sh` | `SessionStart` | sync | Parses ACTIVE_TASK.md; injects phase/verdict/next-skill into context window |
+| `stack-detect.sh` | `SessionStart` | sync | Inspects repo root (B1–B5); writes `.claude/stack-profile.json`; injects stack summary into context |
+| `phase-gate.sh` | `PreToolUse(Bash)` | blocking (exit 2) | Blocks out-of-order skill invocations; checks Observation signals |
+| `secops-scan.sh` | `PostToolUse(Write\|Edit)` | async | Regex scan for secrets, vuln patterns, PII in logs |
+| `harness-change-detect.sh` | `PostToolUse(Write\|Edit)` | async | Fires when a harness file changes; reminds to re-run `/validate-harness` |
+| `adaptive-verify.sh` | `PostToolUse(Write\|Edit)` | async | B3+B4 targeted checks: shellcheck for `.sh`; lint/typecheck reminders for TS/JS/Python; B1 reminder on manifest changes |
+| `verify-fail-capture.sh` | `UserPromptSubmit` | sync | Injects prior `/verify` FAIL blockers into context on retry |
+| `pre-commit.template` | `git commit` (manual install) | blocking | Blocks commits during early phases with no test evidence |
+
+**Stack profile** — `.claude/stack-profile.json` is written by `stack-detect.sh` at every session start. Consumed by `adaptive-verify.sh`. Excluded from git (session artifact).
 
 ---
 

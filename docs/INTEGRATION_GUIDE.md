@@ -90,7 +90,7 @@ The harness requires these files at your project root:
                     CLAUDE.md  ← skill authoring convention
   agents/         ← sdlc subagents (spawned by skills, not invoked directly)
   workflows/      ← 4 workflow files
-  hooks/          ← 6 automation hooks (wired in settings.local.json)
+  hooks/          ← 8 automation hooks (7 wired in settings.local.json + pre-commit.template)
   context/        ← empty dir (populated by /close)
 reports/          ← empty dir (populated by /validate-harness)
 ACTIVE_TASK.md    ← empty schema with <!-- Status: idle --> sentinel (reset after each /close)
@@ -102,17 +102,19 @@ task-log/         ← empty dir (populated by /close)
 
 ## Hooks Setup
 
-The harness ships with 5 hooks in `.claude/hooks/`. The Claude Code hooks (1–4) are pre-wired in `.claude/settings.local.json`. The git hook (5) requires a one-time manual install per clone.
+The harness ships with 7 hooks in `.claude/hooks/`. The Claude Code hooks (1–6) are pre-wired in `.claude/settings.local.json`. The git hook (7) requires a one-time manual install per clone.
 
 ### Claude Code hooks (auto-active after copy)
 
 | Hook | Event | Effect |
 |------|-------|--------|
-| `load-context.sh` | `SessionStart` | Injects harness phase/verdict/next-skill into context window |
-| `phase-gate.sh` | `PreToolUse(Bash)` | Blocks out-of-order skill invocations (exit 2) |
-| `secops-scan.sh` | `PostToolUse(Write\|Edit)` | Async secret/vuln scan on source files during implementation |
-| `verify-fail-capture.sh` | `UserPromptSubmit` | Injects prior `/verify` FAIL blockers on retry |
-| `harness-change-detect.sh` | `PostToolUse(Write\|Edit)` | Fires when a harness file is edited; reminds session to run `/validate-harness` |
+| `load-context.sh` | `SessionStart` (sync) | Injects harness phase/verdict/next-skill into context window |
+| `stack-detect.sh` | `SessionStart` (sync) | Inspects repo root; detects package manager, test runner, linter, type-checker (B1–B5); writes `.claude/stack-profile.json`; injects stack summary into context |
+| `phase-gate.sh` | `PreToolUse(Bash)` (blocking) | Blocks out-of-order skill invocations (exit 2) |
+| `secops-scan.sh` | `PostToolUse(Write\|Edit)` (async) | Secret/vuln scan on source files during implementation |
+| `harness-change-detect.sh` | `PostToolUse(Write\|Edit)` (async) | Fires when a harness file is edited; reminds session to run `/validate-harness` |
+| `adaptive-verify.sh` | `PostToolUse(Write\|Edit)` (async) | B3+B4 targeted checks on each saved file: shellcheck for `.sh`; lint + typecheck reminders for TS/JS/Python; B1 install reminder on manifest changes |
+| `verify-fail-capture.sh` | `UserPromptSubmit` (sync) | Injects prior `/verify` FAIL blockers on retry |
 
 These fire automatically when Claude Code loads `.claude/settings.local.json` from the project root — no extra setup.
 
@@ -163,17 +165,34 @@ This keeps `.claude/context/` snapshots current across the team without manual `
 
 ## Per-Stack Setup
 
+The `stack-detect.sh` hook runs automatically at every session start and inspects the repo root for package manager, test runner, linter, and type-checker. Results are written to `.claude/stack-profile.json` and injected into the context window. No manual stack configuration is needed for detection.
+
+What automatic detection covers:
+
+| Indicator | Detected |
+|-----------|---------|
+| `package.json` (+ lock file) | npm / yarn / pnpm |
+| `pyproject.toml` / `requirements.txt` | pip / poetry |
+| `Cargo.toml` | cargo |
+| `go.mod` | go |
+| `pom.xml` / `build.gradle` | maven / gradle |
+| `tsconfig.json` | tsc type-checker |
+| `.eslintrc*` / `eslint.config.*` | eslint |
+| `.ruff.toml` / `[tool.ruff]` in pyproject | ruff |
+| `pytest.ini` / `conftest.py` | pytest |
+| `shellcheck` in PATH | shellcheck for `.sh` files |
+
+If detection misses something (unusual layout, custom tooling), specify it explicitly when running `/task`:
+
 ### Python (FastAPI / Django / CLI)
 
-No stack-specific config needed. When you run `/task`, specify:
 ```
 techStack: Python 3.x, [framework], pytest, ruff
 ```
-The skills will generate Python-appropriate output (pyproject.toml, pytest patterns, etc.)
+Skills generate Python-appropriate output (pyproject.toml, pytest patterns, etc.)
 
 ### TypeScript / Node (NestJS / Express / Next.js)
 
-Specify:
 ```
 techStack: TypeScript, [framework], Jest, [orm]
 ```
@@ -181,7 +200,6 @@ Skills generate NestJS Guards/Interceptors, Jest test patterns, tsconfig referen
 
 ### Go
 
-Specify:
 ```
 techStack: Go 1.21, [gin/chi/stdlib], testing (stdlib), golangci-lint
 ```
@@ -230,6 +248,9 @@ The harness is a developer tool, not a CI runner. But two outputs integrate with
 ```gitignore
 # Keep ACTIVE_TASK per-developer (not shared state)
 ACTIVE_TASK.md
+
+# Harness generated session artifact (re-created at each session start)
+.claude/stack-profile.json
 
 # Commit these (shared team artifacts):
 # task-log/

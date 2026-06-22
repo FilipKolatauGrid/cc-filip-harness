@@ -55,9 +55,28 @@ if (existingFiles.length > 0) {
 }
 
 const scaffold = await agent(enrichedMetaPrompt(requirement), { schema: SCAFFOLD_SCHEMA });
-appendToActiveTask("## Requirement", `\n### Scaffold\n${scaffold.summary}`);
-appendObservation("init", { doneCriteria: "directory tree created, config files written, CLAUDE.md present" });
+
+// B1–B5: Run stack detection after scaffold files are written
+bash(".claude/hooks/stack-detect.sh");  // writes .claude/stack-profile.json
+const stackProfile = readFile(".claude/stack-profile.json");
+appendToActiveTask("## Requirement", `\n### Scaffold\n${scaffold.summary}\n\n### Stack Profile\n${formatStackProfile(stackProfile)}`);
+appendObservation("init", { doneCriteria: "directory tree created, config files written, CLAUDE.md present, stack-profile.json written" });
 ```
+
+## Stack Detection (B1–B5)
+
+After scaffold files are written, run `.claude/hooks/stack-detect.sh` (or it has already run at SessionStart). Read `.claude/stack-profile.json` and append a `### Stack Profile` subsection to `## Requirement`:
+
+```markdown
+### Stack Profile
+- B1 package-manager: <pm> — install: `<install_cmd>`
+- B2 start: `<start_cmd>` — entry points: [<list>]
+- B3 test-runner: <test_runner> — run: `<test_cmd>`
+- B4 lint: `<lint_cmd>` | typecheck: `<typecheck_cmd>` | shellcheck: <true|false>
+- B5 verify-chain: [<ordered chain>]
+```
+
+If stack-profile.json is absent (stack could not be detected): note "stack: unknown — update CLAUDE.md with build/test/lint commands manually."
 
 ## Observation Block
 
@@ -67,7 +86,7 @@ Append after scaffolding:
 ### Observation
 - phase: intake/init
 - done-signal: filesystem-written
-- done-criteria: directory tree exists, config file list written, CLAUDE.md present
+- done-criteria: directory tree exists, config file list written, CLAUDE.md present, stack-profile.json written
 - files-touched: [list scaffold files created]
 - verdict-source: filesystem-check
 ```
@@ -95,6 +114,8 @@ Creates project filesystem. Appends scaffold summary to `ACTIVE_TASK.md → ## R
 - [ ] Draft CLAUDE.md with build + test + lint commands
 - [ ] Produce first-commit checklist
 - [ ] Ask clarifying questions for ambiguous choices (monorepo? Docker? CI?)
+- [ ] Run `bash .claude/hooks/stack-detect.sh` after scaffold files written
+- [ ] Read `.claude/stack-profile.json` and append `### Stack Profile` (B1–B5) to `## Requirement`
 - [ ] Append scaffold summary to ACTIVE_TASK.md → ## Requirement
 - [ ] Append Observation block
 - [ ] Next: run `design`

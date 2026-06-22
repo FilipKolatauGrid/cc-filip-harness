@@ -43,6 +43,8 @@ Seven principles embedded as first-class constraints in every skill:
 ```
 Then follow the "Next:" prompt at the end of each skill's output.
 
+Skills live in `.claude/skills/` — one subdirectory per skill, each with a `SKILL.md`. Full index: `docs/SKILL_REGISTRY.md`.
+
 ### Jumping to a workflow
 Pick by task type:
 - `/workflow full-sdlc` — new feature, complete lifecycle
