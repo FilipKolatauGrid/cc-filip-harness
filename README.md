@@ -173,7 +173,7 @@ Six automation hooks enforce discipline at the shell level — no skill changes 
 | Hook | Event | What It Does |
 |------|-------|-------------|
 | `load-context.sh` | `SessionStart` | Injects current phase/verdict/next-skill into context window — no cold file read |
-| `phase-gate.sh` | `PreToolUse(Bash)` | Blocks skill invocations if required prior Observation is missing — exit 2 |
+| `phase-gate.sh` | `PreToolUse(Bash)` | Blocks skill invocations if required prior Observation is missing; enforces `planning-gate: confirmed` in `## Risks` before `/code` — exit 2 |
 | `secops-scan.sh` | `PostToolUse(Write\|Edit)` | Async regex scan for secrets/vulns on source files during implementation |
 | `verify-fail-capture.sh` | `UserPromptSubmit` | Injects prior FAIL blockers when `/verify` re-submitted |
 | `harness-change-detect.sh` | `PostToolUse(Write\|Edit)` | Detects edits to harness files; reminds session to run `/validate-harness` |
@@ -204,6 +204,7 @@ chmod +x .git/hooks/pre-commit
 - [x] Example walkthroughs (Python CLI, TypeScript API)
 - [x] `CLAUDE.md` (134 lines — under 150-line guideline)
 - [x] `INTEGRATION_GUIDE.md`
+- [x] Harness audit: 8 structural fixes (1 critical gate crash, 3 HIGH observation fields, 4 MEDIUM gaps)
 
 ## Integrating Into Your Project
 

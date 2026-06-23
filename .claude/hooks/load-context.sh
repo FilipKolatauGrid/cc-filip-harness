@@ -44,7 +44,8 @@ case "$phase" in
   intake/task)          next="init or design" ;;
   planning/design)      next="grill" ;;
   planning/grill)       next="risk" ;;
-  planning/risk)        next="code" ;;
+  planning/risk)                    next="code" ;;
+  planning/local-env-requirements)  next="grill or risk" ;;
   implementation/code)  next="tdd" ;;
   implementation/tdd)   next="tests" ;;
   implementation/refactor) next="tests" ;;

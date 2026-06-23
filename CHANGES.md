@@ -1,3 +1,106 @@
+# Harness Audit: 8 Structural Fixes
+
+**Date:** 2026-06-23
+**Scope:** 1 critical gate crash fix, 3 HIGH observation field additions, 4 MEDIUM clarity/completeness fixes — 8 files edited
+
+---
+
+## What Changed
+
+### 1. `feature-build.md` — Risk-Skip Gate Contract Enforced (CRITICAL)
+
+**Before:** `risk` marked optional for small features, but `/code` hard-blocks on `planning-gate: confirmed` in `## Risks` Observation. Any feature-build flow that skipped `/risk` would crash at `/code`.
+
+**After:** When skipping `/risk`, workflow now requires writing a minimal `## Risks` stub with `planning-gate: confirmed` before proceeding to `/code`. Stub format matches exactly what `phase-gate.sh` looks for. Gate contract unchanged — stub is how you satisfy it without a full risk run.
+
+Stub uses `verdict-source: self-reported` — intentional, this is author judgment, not external verification.
+
+Updated gate text: "`## Risks` with `planning-gate: confirmed` Observation required — either from full `/risk` run or from lightweight stub above."
+
+---
+
+### 2. `phase-gate.sh` — Planning-Gate Hook Enforcement (HIGH)
+
+**Before:** `/code` gate only checked `## Design` non-empty + Design Observation. `planning-gate: confirmed` check existed only in `code/SKILL.md` prose — hook layer could not enforce it.
+
+**After:** `phase-gate.sh` now checks `obs_has "Risks" "planning-gate" "confirmed"` before allowing `/code`. Error message references both full `/risk` path and feature-build stub path. Consistent with how `/review` is gated (both hook + skill prose).
+
+---
+
+### 3. `tdd/SKILL.md` — E2E Test Count in Observation (HIGH)
+
+**Before:** `verify` inferred E2E coverage from runner output — no dedicated Observation field.
+
+**After:** Added `e2e-tests-count: N/N` to Observation (ratio format matching `ac-covered: N/N`, e.g. `4/4` = 4 E2E tests for 4 ACs). Makes E2E coverage density immediately readable in archives without parsing runner output.
+
+---
+
+### 4. `ship/SKILL.md` — Rollback Outcome in Observation (HIGH)
+
+**Before:** `rollback-executed: true|false` recorded but rollback success/failure was not. A failed rollback was indistinguishable from a successful one.
+
+**After:** Added `rollback-status: PASS|FAIL|N/A` after `rollback-executed` (`N/A` when rollback not executed). Checklist updated with per-value instructions.
+
+---
+
+### 5. `audit/SKILL.md` — Disambiguate Verdict Field Names (MEDIUM)
+
+**Before:** `secops-verdict` (secops agent result) and `security-verdict` (architectural OWASP analysis) were interchangeable-looking.
+
+**After:** Renamed to `secops-scan-verdict` and `architectural-analysis-verdict`. No downstream skill or hook referenced these by name — rename contained to `audit/SKILL.md` Observation block only.
+
+---
+
+### 6. `close/SKILL.md` — Document Intentional No-Observation (MEDIUM)
+
+**Before:** `close` was the only skill without an Observation block, with no explanation.
+
+**After:** Added "Why close Does Not Write an Observation Block" section: `close` resets `ACTIVE_TASK.md` as its final action — any Observation written would be destroyed by the reset. Closure record is the task-log archive.
+
+---
+
+### 7. `load-context.sh` — Add `local-env-requirements` Phase Mapping (MEDIUM)
+
+**Before:** `local-env-requirements` writes `phase: planning/local-env-requirements` but had no case entry — session start emitted `next="check ACTIVE_TASK.md"` after this skill.
+
+**After:** Added `planning/local-env-requirements) next="grill or risk" ;;` — matches the skill's own Next guidance.
+
+---
+
+### 8. `init/SKILL.md` — Requirement Integrity Signal in Observation (MEDIUM)
+
+**Before:** `init` appends to `## Requirement` but Observation didn't confirm the section remained non-empty. `design` gates on it being non-empty.
+
+**After:** Added `requirement-section-intact: true` to Observation block. Always `true` on success — consistent with other harness sentinel fields. Checklist updated to verify after write.
+
+---
+
+## What Did NOT Change
+
+- Phase order — all workflows unchanged
+- ACTIVE_TASK.md schema — unchanged
+- All other SKILL.md files — no changes
+- Agent definitions — unchanged
+- All existing gate contracts — unchanged; only additions and one bypass stub path added
+
+---
+
+## File Inventory
+
+**Modified (8 files):**
+```
+.claude/workflows/feature-build.md   risk-skip stub requirement + updated gate text
+.claude/hooks/phase-gate.sh          planning-gate: confirmed check added to /code gate block
+.claude/skills/tdd/SKILL.md          e2e-tests-count: N/N added to Observation block
+.claude/skills/ship/SKILL.md         rollback-status: PASS|FAIL|N/A added to Observation + checklist
+.claude/skills/audit/SKILL.md        secops-verdict → secops-scan-verdict; security-verdict → architectural-analysis-verdict
+.claude/skills/close/SKILL.md        "Why close Does Not Write an Observation Block" section added
+.claude/hooks/load-context.sh        planning/local-env-requirements case entry added
+.claude/skills/init/SKILL.md         requirement-section-intact: true added to Observation + checklist
+```
+
+---
+
 # Tech-Stack Agnostic Detection Layer + Adaptive Verification
 
 **Date:** 2026-06-22

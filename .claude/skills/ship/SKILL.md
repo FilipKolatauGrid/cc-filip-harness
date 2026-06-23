@@ -79,6 +79,7 @@ Append after writing `## Post-Deploy`:
 - done-criteria: all smoke tests run, monitoring snapshot taken, rollback decision recorded
 - smoke-tests: PASS|FAIL
 - rollback-executed: true|false
+- rollback-status: PASS|FAIL|N/A
 - final-status: DEPLOYED|ROLLED_BACK
 - verdict-source: external-evidence (smoke tests + monitoring)
 ```
@@ -104,7 +105,7 @@ Writes to `ACTIVE_TASK.md → ## Post-Deploy`:
 - [ ] Check deploy Observation block — hard block if `done-signal` not `secops-scan`
 - [ ] Run each smoke test from ## Deploy Checklist; record actual pass/fail
 - [ ] Check monitoring: error rate, p95 latency, CPU/memory vs. baseline
-- [ ] If any smoke test fails OR metric anomalous: execute rollback plan immediately
+- [ ] If any smoke test fails OR metric anomalous: execute rollback plan immediately; record rollback-status: PASS if it succeeded, FAIL if it errored
 - [ ] Confirm all notifications from checklist were sent; send pending ones
 - [ ] Record T+5, T+15, T+30 monitoring snapshots
 - [ ] Write final task status: DEPLOYED or ROLLED_BACK (with reason if rolled back)

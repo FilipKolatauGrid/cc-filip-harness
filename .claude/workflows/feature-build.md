@@ -37,7 +37,23 @@ Check ACTIVE_TASK.md state before starting:
 
 **Victory-too-early guard:** If skipping `risk`, explicitly acknowledge the risks are known-low — do not skip because they seem annoying. If any grill decision produced a HIGH consequence ADR, do not skip.
 
-**Gate to Implementation:** ## Design + ## ADRs (locked) populated. ## Risks optional but conditional.
+**When skipping `/risk`:** You MUST still write a minimal `## Risks` stub to ACTIVE_TASK.md before proceeding to `/code`. Without this stub, `/code` hard-blocks on the planning gate. Use this exact format:
+
+```
+## Risks
+
+Known-low-risk feature: [state rationale].
+
+### Observation
+- phase: planning/risk
+- done-signal: schema-populated
+- done-criteria: risks acknowledged as known-low, planning gate confirmed by author
+- planning-gate: confirmed
+- rationale: known-low-risk — [restate reason]
+- verdict-source: self-reported (author judgment)
+```
+
+**Gate to Implementation:** `## Design` + `## ADRs` (locked) populated. `## Risks` with `planning-gate: confirmed` Observation required — either from full `/risk` run or from lightweight stub above.
 
 ---
 

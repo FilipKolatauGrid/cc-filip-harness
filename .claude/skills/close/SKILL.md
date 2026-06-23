@@ -110,6 +110,10 @@ Self-inject full `ACTIVE_TASK.md` content.
 - [ ] Commit: task-log/ + context updates + ACTIVE_TASK.md reset
 - [ ] Next: `ship` (if still deploying) or `task` (next task)
 
+## Why close Does Not Write an Observation Block
+
+`close` resets `ACTIVE_TASK.md` as its final action — any Observation written there would be destroyed by that same reset. The closure record is the archive in `task-log/YYYYMMDD-[TYPE]-slug.md`. To verify `close` ran, check `task-log/` for the timestamped archive file.
+
 ## Type Tags
 
 - `[FE]` — frontend only (React, Vue, CSS, routing)

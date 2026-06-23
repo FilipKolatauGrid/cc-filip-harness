@@ -82,6 +82,8 @@ case "$skill" in
   code)
     section_non_empty "Design" || block "/code requires ## Design. Run /design first."
     section_has_obs "Design"   || block "/code requires a Design Observation block. Run /design to completion."
+    obs_has "Risks" "planning-gate" "confirmed" \
+      || block "/code requires planning-gate: confirmed in ## Risks Observation. Run /risk (or write feature-build lightweight risk stub)."
     ;;
   verify)
     section_non_empty "Test Results" || block "/verify requires ## Test Results. Run /tests then /coverage first."

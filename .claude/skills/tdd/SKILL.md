@@ -97,6 +97,7 @@ Append after all criteria are green:
 - done-signal: test-run-output
 - done-criteria: all AC covered, each has unit + E2E test, runner output recorded, full suite green
 - ac-covered: N/N
+- e2e-tests-count: N/N
 - test-runner-evidence: [test file paths]
 - verdict-source: external-evidence (test runner)
 ```

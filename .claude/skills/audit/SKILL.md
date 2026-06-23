@@ -82,9 +82,9 @@ Append after audit:
 - phase: review/audit
 - done-signal: secops-scan
 - done-criteria: sdlc-secops ran, architectural analysis complete, findings merged, verdict set
-- secops-verdict: CLEAR|FINDINGS_REQUIRE_FIX|CRITICAL_BLOCK
+- secops-scan-verdict: CLEAR|FINDINGS_REQUIRE_FIX|CRITICAL_BLOCK
 - arch-analysis-complete: true
-- security-verdict: CLEAR|FINDINGS_REQUIRE_FIX|CRITICAL_BLOCK
+- architectural-analysis-verdict: CLEAR|FINDINGS_REQUIRE_FIX|CRITICAL_BLOCK
 - verdict-source: external-evidence (secops agent + architectural analysis)
 ```
 

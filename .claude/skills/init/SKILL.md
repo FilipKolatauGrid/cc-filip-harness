@@ -88,6 +88,7 @@ Append after scaffolding:
 - done-signal: filesystem-written
 - done-criteria: directory tree exists, config file list written, CLAUDE.md present, stack-profile.json written
 - files-touched: [list scaffold files created]
+- requirement-section-intact: true
 - verdict-source: filesystem-check
 ```
 
@@ -116,7 +117,7 @@ Creates project filesystem. Appends scaffold summary to `ACTIVE_TASK.md → ## R
 - [ ] Ask clarifying questions for ambiguous choices (monorepo? Docker? CI?)
 - [ ] Run `bash .claude/hooks/stack-detect.sh` after scaffold files written
 - [ ] Read `.claude/stack-profile.json` and append `### Stack Profile` (B1–B5) to `## Requirement`
-- [ ] Append scaffold summary to ACTIVE_TASK.md → ## Requirement
+- [ ] Append scaffold summary to ACTIVE_TASK.md → ## Requirement; verify ## Requirement still non-empty after write
 - [ ] Append Observation block
 - [ ] Next: run `design`
 
